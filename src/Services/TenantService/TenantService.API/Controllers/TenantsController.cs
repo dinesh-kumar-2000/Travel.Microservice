@@ -6,6 +6,7 @@ using TenantService.Application.Commands;
 using TenantService.Application.Queries;
 using TenantService.Contracts.DTOs;
 using SharedKernel.Auditing;
+using SharedKernel.Models;
 
 namespace TenantService.API.Controllers;
 
@@ -75,6 +76,23 @@ public class TenantsController : ControllerBase
         var result = await _mediator.Send(query);
         
         return result == null ? NotFound() : Ok(result);
+    }
+
+    /// <summary>
+    /// Get all active tenants (public endpoint for tenant selection)
+    /// </summary>
+    [HttpGet("public/active")]
+    [AllowAnonymous]
+    [EnableRateLimiting("fixed")]
+    [ProducesResponseType(typeof(ApiResponse<IEnumerable<TenantDto>>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ApiResponse<IEnumerable<TenantDto>>>> GetActiveTenants()
+    {
+        _logger.LogInformation("Getting all active tenants");
+
+        var query = new GetActiveTenantsQuery();
+        var result = await _mediator.Send(query);
+        
+        return Ok(ApiResponse<IEnumerable<TenantDto>>.SuccessResponse(result, "Active tenants retrieved successfully"));
     }
 }
 

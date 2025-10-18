@@ -44,8 +44,18 @@ public class CreateTenantCommandHandler : IRequestHandler<CreateTenantCommand, T
             Subdomain = request.Subdomain
         }, cancellationToken);
 
-        return new TenantDto(tenant.Id, tenant.Name, tenant.Subdomain, tenant.ContactEmail, 
-            tenant.Status.ToString(), tenant.Tier.ToString());
+        return new TenantDto(
+            tenant.Id,
+            tenant.Name,
+            tenant.Name, // DisplayName - same as Name for now
+            tenant.Subdomain,
+            tenant.ContactEmail,
+            tenant.Status.ToString(),
+            tenant.Tier.ToString(),
+            tenant.Configuration.LogoUrl,
+            $"{tenant.Tier} tier travel services", // Description
+            tenant.Status == TenantStatus.Active
+        );
     }
 }
 

@@ -6,6 +6,7 @@ using IdentityService.Contracts.Events;
 using SharedKernel.Exceptions;
 using SharedKernel.Utilities;
 using EventBus.Interfaces;
+using Identity.Shared;
 
 namespace IdentityService.Application.Commands;
 
@@ -13,11 +14,16 @@ public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, R
 {
     private readonly IUserRepository _userRepository;
     private readonly IEventBus _eventBus;
+    private readonly IJwtService _jwtService;
 
-    public RegisterUserCommandHandler(IUserRepository userRepository, IEventBus eventBus)
+    public RegisterUserCommandHandler(
+        IUserRepository userRepository, 
+        IEventBus eventBus,
+        IJwtService jwtService)
     {
         _userRepository = userRepository;
         _eventBus = eventBus;
+        _jwtService = jwtService;
     }
 
     public async Task<RegisterUserResponse> Handle(RegisterUserCommand request, CancellationToken cancellationToken)
@@ -40,7 +46,7 @@ public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, R
             passwordHash,
             request.FirstName,
             request.LastName,
-            request.PhoneNumber
+            request.PhoneNumber ?? string.Empty
         );
 
         await _userRepository.AddAsync(user, cancellationToken);
@@ -48,6 +54,19 @@ public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, R
         // Assign default Customer role
         var customerRoleId = "role_customer"; // This should come from seed data
         await _userRepository.AssignRoleAsync(userId, customerRoleId, cancellationToken);
+
+        // Get user roles
+        var roles = await _userRepository.GetUserRolesAsync(userId, cancellationToken);
+
+        // Generate tokens for immediate login after registration
+        var accessToken = _jwtService.GenerateToken(userId, user.Email, user.TenantId, roles);
+        var refreshToken = Guid.NewGuid().ToString();
+        var expiresAt = DateTime.UtcNow.AddDays(7);
+
+        // Update user with refresh token
+        user.SetRefreshToken(refreshToken, expiresAt);
+        user.RecordLogin();
+        await _userRepository.UpdateAsync(user, cancellationToken);
 
         // Publish event
         await _eventBus.PublishAsync(new UserRegisteredEvent
@@ -59,7 +78,12 @@ public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, R
             LastName = request.LastName
         }, cancellationToken);
 
-        return new RegisterUserResponse(userId, request.Email, "User registered successfully");
+        return new RegisterUserResponse(
+            accessToken,
+            refreshToken,
+            expiresAt,
+            new UserDto(userId, user.Email, user.FirstName, user.LastName, user.PhoneNumber, roles)
+        );
     }
 }
 

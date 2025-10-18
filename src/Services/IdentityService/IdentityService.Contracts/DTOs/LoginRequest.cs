@@ -1,24 +1,26 @@
+using System.Text.Json.Serialization;
+
 namespace IdentityService.Contracts.DTOs;
 
 public record LoginRequest(
-    string Email,
-    string Password,
-    string TenantId
+    [property: JsonPropertyName("email")] string Email,
+    [property: JsonPropertyName("password")] string Password,
+    [property: JsonPropertyName("tenantId")] string TenantId
 );
 
 public record LoginResponse(
-    string AccessToken,
-    string RefreshToken,
-    DateTime ExpiresAt,
-    UserDto User
+    [property: JsonPropertyName("accessToken")] string AccessToken,
+    [property: JsonPropertyName("refreshToken")] string RefreshToken,
+    [property: JsonPropertyName("expiresAt")] DateTime ExpiresAt,
+    [property: JsonPropertyName("user")] UserDto User
 );
 
 public record UserDto(
-    string Id,
-    string Email,
-    string FirstName,
-    string LastName,
-    string PhoneNumber,
-    IEnumerable<string> Roles
+    [property: JsonPropertyName("id")] string Id,
+    [property: JsonPropertyName("email")] string Email,
+    [property: JsonPropertyName("firstName")] string FirstName,
+    [property: JsonPropertyName("lastName")] string LastName,
+    [property: JsonPropertyName("phoneNumber")] string PhoneNumber,
+    [property: JsonPropertyName("roles")] IEnumerable<string> Roles
 );
 

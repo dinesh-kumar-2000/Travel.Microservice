@@ -80,6 +80,14 @@ public class TenantRepository : ITenantRepository
         return count > 0;
     }
 
+    public async Task<IEnumerable<Tenant>> GetActiveTenantsAsync(CancellationToken cancellationToken = default)
+    {
+        using var connection = CreateConnection();
+        var sql = "SELECT * FROM tenants WHERE status = 0 ORDER BY name";  // 0 = Active status
+        var data = await connection.QueryAsync<TenantData>(sql);
+        return data.Select(d => d.ToEntity());
+    }
+
     private class TenantData
     {
         public string Id { get; set; } = string.Empty;

@@ -43,7 +43,7 @@ public class AuthController : ControllerBase
             request.Password,
             request.FirstName,
             request.LastName,
-            request.PhoneNumber,
+            request.PhoneNumber ?? string.Empty,
             request.TenantId
         );
 
@@ -53,17 +53,17 @@ public class AuthController : ControllerBase
         await _auditService.LogAsync(new AuditEntry
         {
             TenantId = request.TenantId,
-            UserId = result.UserId,
+            UserId = result.User.Id,
             Action = "Register",
             EntityType = "User",
-            EntityId = result.UserId,
-            NewValues = System.Text.Json.JsonSerializer.Serialize(new { result.Email, request.FirstName, request.LastName }),
+            EntityId = result.User.Id,
+            NewValues = System.Text.Json.JsonSerializer.Serialize(new { result.User.Email, request.FirstName, request.LastName }),
             IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
             UserAgent = HttpContext.Request.Headers["User-Agent"].ToString()
         });
         
         _logger.LogInformation("User {Email} registered successfully with ID {UserId}", 
-            request.Email, result.UserId);
+            request.Email, result.User.Id);
 
         return Ok(result);
     }

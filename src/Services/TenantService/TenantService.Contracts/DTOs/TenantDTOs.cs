@@ -1,24 +1,30 @@
+using System.Text.Json.Serialization;
+
 namespace TenantService.Contracts.DTOs;
 
 public record CreateTenantRequest(
-    string Name,
-    string Subdomain,
-    string ContactEmail,
-    string ContactPhone
+    [property: JsonPropertyName("name")] string Name,
+    [property: JsonPropertyName("subdomain")] string Subdomain,
+    [property: JsonPropertyName("contactEmail")] string ContactEmail,
+    [property: JsonPropertyName("contactPhone")] string ContactPhone
 );
 
 public record TenantDto(
-    string Id,
-    string Name,
-    string Subdomain,
-    string ContactEmail,
-    string Status,
-    string Tier
+    [property: JsonPropertyName("id")] string Id,
+    [property: JsonPropertyName("name")] string Name,
+    [property: JsonPropertyName("displayName")] string DisplayName,
+    [property: JsonPropertyName("subdomain")] string Subdomain,
+    [property: JsonPropertyName("contactEmail")] string ContactEmail,
+    [property: JsonPropertyName("status")] string Status,
+    [property: JsonPropertyName("tier")] string Tier,
+    [property: JsonPropertyName("logoUrl")] string? LogoUrl,
+    [property: JsonPropertyName("description")] string? Description,
+    [property: JsonPropertyName("isActive")] bool IsActive
 );
 
 public record UpdateTenantConfigRequest(
-    string PrimaryColor,
-    string SecondaryColor,
-    string LogoUrl
+    [property: JsonPropertyName("primaryColor")] string PrimaryColor,
+    [property: JsonPropertyName("secondaryColor")] string SecondaryColor,
+    [property: JsonPropertyName("logoUrl")] string LogoUrl
 );
 

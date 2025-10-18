@@ -91,7 +91,8 @@ app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
 
 app.UseHttpsRedirection();
 app.UseRateLimiter();
-app.UseAuthorization();
+// Note: Authorization is not configured since this service has public endpoints
+// app.UseAuthorization();
 app.MapControllers();
 app.MapHealthChecks("/health");
 app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions

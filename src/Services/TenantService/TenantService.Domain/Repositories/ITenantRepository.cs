@@ -7,5 +7,6 @@ public interface ITenantRepository : IRepository<Tenant, string>
 {
     Task<Tenant?> GetBySubdomainAsync(string subdomain, CancellationToken cancellationToken = default);
     Task<bool> SubdomainExistsAsync(string subdomain, CancellationToken cancellationToken = default);
+    Task<IEnumerable<Tenant>> GetActiveTenantsAsync(CancellationToken cancellationToken = default);
 }
 
