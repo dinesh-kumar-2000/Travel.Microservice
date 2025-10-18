@@ -1,0 +1,10 @@
+# VS Code specific files to ignore
+# Keep this minimal - most files here should be committed
+
+# User-specific settings (if any)
+settings.local.json
+
+# Temporary debug files
+*.log
+*.tmp
+

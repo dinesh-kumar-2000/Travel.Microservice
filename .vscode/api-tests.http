@@ -1,0 +1,344 @@
+### Travel Portal API Tests
+### Use REST Client extension (humao.rest-client) to execute these requests
+### Press Ctrl+Alt+R (Cmd+Alt+R on Mac) on a request line to send it
+
+@gateway = http://localhost:5000
+@identityService = http://localhost:5001
+@tenantService = http://localhost:5002
+@catalogService = http://localhost:5003
+@bookingService = http://localhost:5004
+@paymentService = http://localhost:5005
+@notificationService = http://localhost:5006
+@reportingService = http://localhost:5007
+
+@token = {{login.response.body.token}}
+
+###############################################
+# Identity Service - Authentication
+###############################################
+
+### Register New User
+POST {{identityService}}/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "testuser@example.com",
+  "password": "Test@123456",
+  "firstName": "Test",
+  "lastName": "User",
+  "phoneNumber": "+1234567890"
+}
+
+### Login
+# @name login
+POST {{identityService}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "testuser@example.com",
+  "password": "Test@123456"
+}
+
+### Refresh Token
+POST {{identityService}}/api/auth/refresh
+Content-Type: application/json
+
+{
+  "token": "{{token}}",
+  "refreshToken": "your-refresh-token"
+}
+
+### Get Current User Profile
+GET {{identityService}}/api/users/me
+Authorization: Bearer {{token}}
+
+### Update User Profile
+PUT {{identityService}}/api/users/me
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "firstName": "Updated",
+  "lastName": "User",
+  "phoneNumber": "+1234567890"
+}
+
+###############################################
+# Tenant Service - Multi-tenancy
+###############################################
+
+### Create Tenant
+POST {{tenantService}}/api/tenants
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Acme Travel Agency",
+  "domain": "acme",
+  "email": "admin@acme.com",
+  "planType": "Premium"
+}
+
+### Get All Tenants
+GET {{tenantService}}/api/tenants
+Authorization: Bearer {{token}}
+
+### Get Tenant by ID
+GET {{tenantService}}/api/tenants/{{tenantId}}
+Authorization: Bearer {{token}}
+
+### Update Tenant
+PUT {{tenantService}}/api/tenants/{{tenantId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Acme Travel Agency Updated",
+  "planType": "Enterprise"
+}
+
+###############################################
+# Catalog Service - Destinations & Packages
+###############################################
+
+### Get All Destinations
+GET {{catalogService}}/api/destinations
+Authorization: Bearer {{token}}
+
+### Search Destinations
+GET {{catalogService}}/api/destinations/search?query=paris&category=Europe
+Authorization: Bearer {{token}}
+
+### Get Destination by ID
+GET {{catalogService}}/api/destinations/{{destinationId}}
+Authorization: Bearer {{token}}
+
+### Create Destination
+POST {{catalogService}}/api/destinations
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Paris",
+  "country": "France",
+  "description": "City of Light",
+  "category": "Europe",
+  "rating": 4.8,
+  "tags": ["romantic", "cultural", "historic"]
+}
+
+### Get Travel Packages
+GET {{catalogService}}/api/packages
+Authorization: Bearer {{token}}
+
+### Create Travel Package
+POST {{catalogService}}/api/packages
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Paris Weekend Getaway",
+  "destinationId": "{{destinationId}}",
+  "duration": 3,
+  "price": 1500.00,
+  "currency": "USD",
+  "description": "3-day Paris experience",
+  "inclusions": ["Hotel", "Breakfast", "City Tour"],
+  "maxGuests": 2
+}
+
+###############################################
+# Booking Service - Reservations
+###############################################
+
+### Create Booking
+POST {{bookingService}}/api/bookings
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "packageId": "{{packageId}}",
+  "startDate": "2025-06-01",
+  "endDate": "2025-06-04",
+  "numberOfGuests": 2,
+  "customerInfo": {
+    "firstName": "John",
+    "lastName": "Doe",
+    "email": "john.doe@example.com",
+    "phone": "+1234567890"
+  },
+  "specialRequests": "Early check-in preferred"
+}
+
+### Get My Bookings
+GET {{bookingService}}/api/bookings/my-bookings
+Authorization: Bearer {{token}}
+
+### Get Booking by ID
+GET {{bookingService}}/api/bookings/{{bookingId}}
+Authorization: Bearer {{token}}
+
+### Cancel Booking
+POST {{bookingService}}/api/bookings/{{bookingId}}/cancel
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "reason": "Change of plans"
+}
+
+### Confirm Booking
+POST {{bookingService}}/api/bookings/{{bookingId}}/confirm
+Authorization: Bearer {{token}}
+
+###############################################
+# Payment Service - Transactions
+###############################################
+
+### Create Payment
+POST {{paymentService}}/api/payments
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "bookingId": "{{bookingId}}",
+  "amount": 1500.00,
+  "currency": "USD",
+  "paymentMethod": "CreditCard",
+  "cardDetails": {
+    "cardNumber": "4111111111111111",
+    "expiryMonth": 12,
+    "expiryYear": 2026,
+    "cvv": "123",
+    "cardHolderName": "John Doe"
+  }
+}
+
+### Get Payment by ID
+GET {{paymentService}}/api/payments/{{paymentId}}
+Authorization: Bearer {{token}}
+
+### Get Payment History
+GET {{paymentService}}/api/payments/history
+Authorization: Bearer {{token}}
+
+### Process Refund
+POST {{paymentService}}/api/payments/{{paymentId}}/refund
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "amount": 1500.00,
+  "reason": "Customer cancellation"
+}
+
+###############################################
+# Notification Service
+###############################################
+
+### Send Email Notification
+POST {{notificationService}}/api/notifications/email
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "to": "customer@example.com",
+  "subject": "Booking Confirmation",
+  "body": "Your booking has been confirmed",
+  "templateId": "booking-confirmation"
+}
+
+### Get Notification History
+GET {{notificationService}}/api/notifications/history
+Authorization: Bearer {{token}}
+
+### Get Notification Status
+GET {{notificationService}}/api/notifications/{{notificationId}}/status
+Authorization: Bearer {{token}}
+
+###############################################
+# Reporting Service - Analytics
+###############################################
+
+### Get Booking Statistics
+GET {{reportingService}}/api/reports/bookings/statistics?startDate=2025-01-01&endDate=2025-12-31
+Authorization: Bearer {{token}}
+
+### Get Revenue Report
+GET {{reportingService}}/api/reports/revenue?period=monthly&year=2025
+Authorization: Bearer {{token}}
+
+### Get Popular Destinations
+GET {{reportingService}}/api/reports/destinations/popular?limit=10
+Authorization: Bearer {{token}}
+
+### Get Customer Analytics
+GET {{reportingService}}/api/reports/customers/analytics
+Authorization: Bearer {{token}}
+
+###############################################
+# API Gateway - Through Gateway
+###############################################
+
+### Health Check via Gateway
+GET {{gateway}}/health
+
+### Login via Gateway
+POST {{gateway}}/api/identity/auth/login
+Content-Type: application/json
+
+{
+  "email": "testuser@example.com",
+  "password": "Test@123456"
+}
+
+### Get Destinations via Gateway
+GET {{gateway}}/api/catalog/destinations
+Authorization: Bearer {{token}}
+
+### Create Booking via Gateway
+POST {{gateway}}/api/booking/bookings
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "packageId": "{{packageId}}",
+  "startDate": "2025-06-01",
+  "endDate": "2025-06-04",
+  "numberOfGuests": 2,
+  "customerInfo": {
+    "firstName": "John",
+    "lastName": "Doe",
+    "email": "john.doe@example.com",
+    "phone": "+1234567890"
+  }
+}
+
+###############################################
+# Health Checks - All Services
+###############################################
+
+### Identity Service Health
+GET {{identityService}}/health
+
+### Tenant Service Health
+GET {{tenantService}}/health
+
+### Catalog Service Health
+GET {{catalogService}}/health
+
+### Booking Service Health
+GET {{bookingService}}/health
+
+### Payment Service Health
+GET {{paymentService}}/health
+
+### Notification Service Health
+GET {{notificationService}}/health
+
+### Reporting Service Health
+GET {{reportingService}}/health
+
+### API Gateway Health
+GET {{gateway}}/health
+

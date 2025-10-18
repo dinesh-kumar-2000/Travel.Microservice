@@ -1,0 +1,31 @@
+{
+  "recommendations": [
+    // .NET Development
+    "ms-dotnettools.csharp",
+    "ms-dotnettools.csdevkit",
+    
+    // JavaScript/TypeScript Development
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    
+    // React Development
+    "dsznajder.es7-react-js-snippets",
+    
+    // Docker Support
+    "ms-azuretools.vscode-docker",
+    
+    // Database Tools
+    "ckolkman.vscode-postgres",
+    
+    // REST Client for API Testing
+    "humao.rest-client",
+    
+    // GitLens
+    "eamodio.gitlens",
+    
+    // General Utilities
+    "christian-kohler.path-intellisense",
+    "formulahendry.auto-rename-tag",
+    "editorconfig.editorconfig"
+  ]
+}

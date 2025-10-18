@@ -1,0 +1,212 @@
+using EventBus.Extensions;
+using Identity.Shared;
+using IdentityService.API.Middleware;
+using IdentityService.Application;
+using IdentityService.Infrastructure;
+using Microsoft.AspNetCore.Mvc;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
+using Serilog;
+using Serilog.Formatting.Compact;
+using SharedKernel.Auditing;
+using SharedKernel.Caching;
+using SharedKernel.Compression;
+using SharedKernel.Middleware;
+using SharedKernel.RateLimiting;
+using SharedKernel.Versioning;
+using Tenancy;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Serilog Configuration
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console(new CompactJsonFormatter())
+    .Enrich.WithProperty("Service", "IdentityService")
+    .Enrich.FromLogContext()
+    .CreateLogger();
+
+builder.Host.UseSerilog();
+
+// Configuration
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException("Connection string not found");
+
+var redisConnection = builder.Configuration.GetConnectionString("Redis")
+    ?? "localhost:6379";
+
+var jwtSettings = new JwtSettings
+{
+    SecretKey = builder.Configuration["Jwt:SecretKey"] ?? throw new InvalidOperationException("JWT SecretKey not found"),
+    Issuer = builder.Configuration["Jwt:Issuer"] ?? "TravelPortal",
+    Audience = builder.Configuration["Jwt:Audience"] ?? "TravelPortal",
+    ExpiryMinutes = int.Parse(builder.Configuration["Jwt:ExpiryMinutes"] ?? "60")
+};
+
+var rabbitMqHost = builder.Configuration["RabbitMQ:Host"] ?? "localhost";
+var rabbitMqUsername = builder.Configuration["RabbitMQ:Username"] ?? "guest";
+var rabbitMqPassword = builder.Configuration["RabbitMQ:Password"] ?? "guest";
+
+// Add services
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+
+// Response Compression (gzip, Brotli)
+builder.Services.AddResponseCompressionConfiguration();
+
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new() { Title = "Identity Service API", Version = "v1" });
+    c.AddSecurityDefinition("Bearer", new()
+    {
+        Description = "JWT Authorization header using the Bearer scheme",
+        Name = "Authorization",
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
+        Scheme = "Bearer"
+    });
+    c.AddSecurityRequirement(new()
+    {
+        {
+            new()
+            {
+                Reference = new() { Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme, Id = "Bearer" }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
+
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+
+// Correlation ID - register the provider from SharedKernel.Behaviors
+builder.Services.AddScoped<SharedKernel.Behaviors.ICorrelationIdProvider, SharedKernel.Behaviors.CorrelationIdProvider>();
+
+// Distributed Cache (Redis)
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = redisConnection;
+    options.InstanceName = "TravelPortal:";
+});
+builder.Services.AddSingleton<ICacheService, RedisCacheService>();
+
+// Audit Service
+builder.Services.AddScoped<IAuditService, AuditService>();
+
+// Multi-tenancy
+builder.Services.AddMultiTenancy();
+
+// JWT Authentication
+builder.Services.AddJwtAuthentication(jwtSettings);
+
+// API Versioning
+builder.Services.AddApiVersioningConfiguration();
+
+// Rate Limiting
+builder.Services.AddTenantRateLimiting();
+
+// Application Layer
+builder.Services.AddApplication();
+
+// Infrastructure Layer
+builder.Services.AddInfrastructure(connectionString);
+
+// Event Bus
+builder.Services.AddEventBus(rabbitMqHost, rabbitMqUsername, rabbitMqPassword);
+
+// OpenTelemetry Tracing + Prometheus Metrics
+builder.Services.AddOpenTelemetry()
+    .WithTracing(tracerProviderBuilder =>
+    {
+        tracerProviderBuilder
+            .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("IdentityService"))
+            .AddAspNetCoreInstrumentation()
+            .AddHttpClientInstrumentation()
+            .AddJaegerExporter(options =>
+            {
+                options.AgentHost = builder.Configuration["Jaeger:Host"] ?? "localhost";
+                options.AgentPort = int.Parse(builder.Configuration["Jaeger:Port"] ?? "6831");
+            });
+    })
+    .WithMetrics(metricsProviderBuilder =>
+    {
+        metricsProviderBuilder
+            .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("IdentityService"))
+            .AddAspNetCoreInstrumentation()
+            .AddHttpClientInstrumentation()
+            .AddRuntimeInstrumentation()
+            .AddProcessInstrumentation()
+            .AddPrometheusExporter();
+    });
+
+// Health Checks
+builder.Services.AddHealthChecks()
+    .AddNpgSql(connectionString, name: "database", tags: new[] { "db" })
+    .AddRabbitMQ(rabbitConnectionString: $"amqp://{rabbitMqUsername}:{rabbitMqPassword}@{rabbitMqHost}",
+        name: "rabbitmq", tags: new[] { "messaging" })
+    .AddRedis(redisConnection, name: "redis", tags: new[] { "cache" });
+
+// CORS Configuration
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.WithOrigins(
+                "http://localhost:3000",  // React Web
+                "http://localhost:3001",  // React Admin
+                "http://localhost:19006"  // React Native (Expo)
+            )
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .AllowCredentials();
+    });
+});
+
+var app = builder.Build();
+
+// Initialize Database
+IdentityService.Infrastructure.DependencyInjection.InitializeDatabase(connectionString);
+
+// Middleware Pipeline
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
+// Response Compression (must be before other middleware)
+app.UseResponseCompression();
+
+// CORS (must be before authentication)
+app.UseCors();
+
+// Custom Middleware
+app.UseMiddleware<CorrelationIdMiddleware>();
+app.UseMiddleware<ExceptionHandlingMiddleware>();
+
+app.UseHttpsRedirection();
+
+// Rate Limiting
+app.UseRateLimiter();
+
+app.UseMultiTenancy();
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapControllers();
+app.MapHealthChecks("/health");
+app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("db") || check.Tags.Contains("messaging")
+});
+app.MapHealthChecks("/health/live", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = _ => false
+});
+
+// Prometheus metrics endpoint
+app.MapPrometheusScrapingEndpoint();
+
+app.Run();
+

@@ -1,0 +1,117 @@
+groups:
+  - name: travel_portal_alerts
+    interval: 30s
+    rules:
+      # Error Rate > 5%
+      - alert: HighErrorRate
+        expr: |
+          (
+            rate(http_requests_received_total{http_status_code=~"5.."}[5m])
+            /
+            rate(http_requests_received_total[5m])
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High error rate detected (> 5%)"
+          description: "{{ $labels.service }} has {{ $value | humanizePercentage }} error rate"
+
+      # Response Time > 500ms (p95)
+      - alert: HighResponseTime
+        expr: |
+          histogram_quantile(0.95, 
+            rate(http_request_duration_seconds_bucket[5m])
+          ) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High response time (p95 > 500ms)"
+          description: "{{ $labels.service }} p95 response time is {{ $value }}s"
+
+      # Database Connections > 80%
+      - alert: HighDatabaseConnections
+        expr: |
+          (
+            pg_stat_database_numbackends
+            /
+            pg_settings_max_connections
+          ) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High database connection usage (> 80%)"
+          description: "Database {{ $labels.datname }} is using {{ $value | humanizePercentage }} of connections"
+
+      # RabbitMQ Queue Depth > 1000
+      - alert: HighQueueDepth
+        expr: rabbitmq_queue_messages_ready > 1000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High message queue depth (> 1000)"
+          description: "Queue {{ $labels.queue }} has {{ $value }} messages waiting"
+
+      # Service Down
+      - alert: ServiceDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service is down"
+          description: "{{ $labels.job }} has been down for more than 2 minutes"
+
+      # High Memory Usage
+      - alert: HighMemoryUsage
+        expr: |
+          (
+            process_resident_memory_bytes
+            /
+            container_spec_memory_limit_bytes
+          ) > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage (> 90%)"
+          description: "{{ $labels.service }} is using {{ $value | humanizePercentage }} of memory"
+
+      # High CPU Usage
+      - alert: HighCPUUsage
+        expr: rate(process_cpu_seconds_total[5m]) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage (> 80%)"
+          description: "{{ $labels.service }} CPU usage is {{ $value | humanizePercentage }}"
+
+      # Redis Down
+      - alert: RedisDown
+        expr: redis_up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis is down"
+          description: "Redis has been down for more than 2 minutes"
+
+      # Disk Space Low
+      - alert: LowDiskSpace
+        expr: |
+          (
+            node_filesystem_avail_bytes{mountpoint="/"}
+            /
+            node_filesystem_size_bytes{mountpoint="/"}
+          ) < 0.1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Low disk space (< 10%)"
+          description: "Only {{ $value | humanizePercentage }} disk space remaining"
+

@@ -1,0 +1,228 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "IdentityService",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build-identityservice",
+      "program": "${workspaceFolder}/src/Services/IdentityService/IdentityService.API/bin/Debug/net8.0/IdentityService.API.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/src/Services/IdentityService/IdentityService.API",
+      "stopAtEntry": false,
+      "serverReadyAction": {
+        "action": "openExternally",
+        "pattern": "\\bNow listening on:\\s+(https?://\\S+)",
+        "uriFormat": "%s/swagger"
+      },
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_URLS": "http://localhost:5001"
+      },
+      "sourceFileMap": {
+        "/Views": "${workspaceFolder}/Views"
+      }
+    },
+    {
+      "name": "TenantService",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build-tenantservice",
+      "program": "${workspaceFolder}/src/Services/TenantService/TenantService.API/bin/Debug/net8.0/TenantService.API.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/src/Services/TenantService/TenantService.API",
+      "stopAtEntry": false,
+      "serverReadyAction": {
+        "action": "openExternally",
+        "pattern": "\\bNow listening on:\\s+(https?://\\S+)",
+        "uriFormat": "%s/swagger"
+      },
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_URLS": "http://localhost:5002"
+      }
+    },
+    {
+      "name": "CatalogService",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build-catalogservice",
+      "program": "${workspaceFolder}/src/Services/CatalogService/CatalogService.API/bin/Debug/net8.0/CatalogService.API.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/src/Services/CatalogService/CatalogService.API",
+      "stopAtEntry": false,
+      "serverReadyAction": {
+        "action": "openExternally",
+        "pattern": "\\bNow listening on:\\s+(https?://\\S+)",
+        "uriFormat": "%s/swagger"
+      },
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_URLS": "http://localhost:5003"
+      }
+    },
+    {
+      "name": "BookingService",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build-bookingservice",
+      "program": "${workspaceFolder}/src/Services/BookingService/BookingService.API/bin/Debug/net8.0/BookingService.API.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/src/Services/BookingService/BookingService.API",
+      "stopAtEntry": false,
+      "serverReadyAction": {
+        "action": "openExternally",
+        "pattern": "\\bNow listening on:\\s+(https?://\\S+)",
+        "uriFormat": "%s/swagger"
+      },
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_URLS": "http://localhost:5004"
+      }
+    },
+    {
+      "name": "PaymentService",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build-paymentservice",
+      "program": "${workspaceFolder}/src/Services/PaymentService/PaymentService.API/bin/Debug/net8.0/PaymentService.API.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/src/Services/PaymentService/PaymentService.API",
+      "stopAtEntry": false,
+      "serverReadyAction": {
+        "action": "openExternally",
+        "pattern": "\\bNow listening on:\\s+(https?://\\S+)",
+        "uriFormat": "%s/swagger"
+      },
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_URLS": "http://localhost:5005"
+      }
+    },
+    {
+      "name": "NotificationService",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build-notificationservice",
+      "program": "${workspaceFolder}/src/Services/NotificationService/NotificationService.API/bin/Debug/net8.0/NotificationService.API.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/src/Services/NotificationService/NotificationService.API",
+      "stopAtEntry": false,
+      "serverReadyAction": {
+        "action": "openExternally",
+        "pattern": "\\bNow listening on:\\s+(https?://\\S+)",
+        "uriFormat": "%s/swagger"
+      },
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_URLS": "http://localhost:5006"
+      }
+    },
+    {
+      "name": "ReportingService",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build-reportingservice",
+      "program": "${workspaceFolder}/src/Services/ReportingService/ReportingService.API/bin/Debug/net8.0/ReportingService.API.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/src/Services/ReportingService/ReportingService.API",
+      "stopAtEntry": false,
+      "serverReadyAction": {
+        "action": "openExternally",
+        "pattern": "\\bNow listening on:\\s+(https?://\\S+)",
+        "uriFormat": "%s/swagger"
+      },
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_URLS": "http://localhost:5007"
+      }
+    },
+    {
+      "name": "ApiGateway",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build-apigateway",
+      "program": "${workspaceFolder}/src/Services/Gateway/ApiGateway/bin/Debug/net8.0/ApiGateway.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/src/Services/Gateway/ApiGateway",
+      "stopAtEntry": false,
+      "serverReadyAction": {
+        "action": "openExternally",
+        "pattern": "\\bNow listening on:\\s+(https?://\\S+)",
+        "uriFormat": "%s/swagger"
+      },
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_URLS": "http://localhost:5000"
+      }
+    },
+    {
+      "name": "React Frontend",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:3000",
+      "webRoot": "${workspaceFolder}/client/src",
+      "preLaunchTask": "start-frontend"
+    },
+    {
+      "name": "Attach to .NET Process",
+      "type": "coreclr",
+      "request": "attach"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "All Backend Services",
+      "configurations": [
+        "IdentityService",
+        "TenantService",
+        "CatalogService",
+        "BookingService",
+        "PaymentService",
+        "NotificationService",
+        "ReportingService",
+        "ApiGateway"
+      ],
+      "stopAll": true,
+      "presentation": {
+        "hidden": false,
+        "group": "backend",
+        "order": 1
+      }
+    },
+    {
+      "name": "Full Stack (Backend + Frontend)",
+      "configurations": [
+        "IdentityService",
+        "TenantService",
+        "CatalogService",
+        "BookingService",
+        "PaymentService",
+        "NotificationService",
+        "ReportingService",
+        "ApiGateway",
+        "React Frontend"
+      ],
+      "stopAll": true,
+      "presentation": {
+        "hidden": false,
+        "group": "fullstack",
+        "order": 2
+      }
+    },
+    {
+      "name": "Core Services (Identity + Tenant + Gateway)",
+      "configurations": [
+        "IdentityService",
+        "TenantService",
+        "ApiGateway"
+      ],
+      "stopAll": true,
+      "presentation": {
+        "hidden": false,
+        "group": "backend",
+        "order": 3
+      }
+    }
+  ]
+}

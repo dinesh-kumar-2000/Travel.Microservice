@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="MediatR" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ReportingService.Domain\ReportingService.Domain.csproj" />
+    <ProjectReference Include="..\ReportingService.Contracts\ReportingService.Contracts.csproj" />
+  </ItemGroup>
+</Project>
+

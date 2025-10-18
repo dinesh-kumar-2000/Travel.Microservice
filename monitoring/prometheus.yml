@@ -1,0 +1,84 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'travel-portal'
+    environment: 'production'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - 'alertmanager:9093'
+
+# Rule files
+rule_files:
+  - 'alert_rules.yml'
+
+# Scrape configurations
+scrape_configs:
+  # Identity Service
+  - job_name: 'identityservice'
+    static_configs:
+      - targets: ['identityservice:80']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # Tenant Service
+  - job_name: 'tenantservice'
+    static_configs:
+      - targets: ['tenantservice:80']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # Catalog Service
+  - job_name: 'catalogservice'
+    static_configs:
+      - targets: ['catalogservice:80']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # Booking Service
+  - job_name: 'bookingservice'
+    static_configs:
+      - targets: ['bookingservice:80']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # Payment Service
+  - job_name: 'paymentservice'
+    static_configs:
+      - targets: ['paymentservice:80']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # Notification Service
+  - job_name: 'notificationservice'
+    static_configs:
+      - targets: ['notificationservice:80']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # Reporting Service
+  - job_name: 'reportingservice'
+    static_configs:
+      - targets: ['reportingservice:80']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # PostgreSQL Exporter
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+
+  # RabbitMQ
+  - job_name: 'rabbitmq'
+    static_configs:
+      - targets: ['rabbitmq:15692']  # Prometheus plugin port
+
+  # Redis
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+
