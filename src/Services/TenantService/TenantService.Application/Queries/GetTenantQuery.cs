@@ -19,17 +19,31 @@ public class GetTenantByIdQueryHandler : IRequestHandler<GetTenantByIdQuery, Ten
     public async Task<TenantDto?> Handle(GetTenantByIdQuery request, CancellationToken cancellationToken)
     {
         var tenant = await _repository.GetByIdAsync(request.TenantId, cancellationToken);
-        return tenant == null ? null : new TenantDto(
-            tenant.Id,
-            tenant.Name,
-            tenant.Name, // DisplayName - same as Name for now
-            tenant.Subdomain,
-            tenant.ContactEmail,
-            tenant.Status.ToString(),
-            tenant.Tier.ToString(),
-            tenant.Configuration.LogoUrl,
-            $"{tenant.Tier} tier travel services", // Description
-            tenant.Status == TenantStatus.Active
+        
+        if (tenant == null)
+            return null;
+
+        var settings = new TenantSettings(
+            Theme: "light",
+            PrimaryColor: tenant.Configuration.PrimaryColor,
+            SecondaryColor: tenant.Configuration.SecondaryColor,
+            LogoUrl: tenant.Configuration.LogoUrl,
+            FaviconUrl: null,
+            CustomCss: null
+        );
+
+        return new TenantDto(
+            Id: tenant.Id,
+            Name: tenant.Name,
+            Subdomain: tenant.Subdomain,
+            ContactEmail: tenant.ContactEmail,
+            Status: tenant.Status.ToString(),
+            Tier: tenant.Tier.ToString(),
+            Logo: tenant.Configuration.LogoUrl,
+            PrimaryColor: tenant.Configuration.PrimaryColor,
+            SecondaryColor: tenant.Configuration.SecondaryColor,
+            IsActive: tenant.Status == TenantStatus.Active,
+            Settings: settings
         );
     }
 }

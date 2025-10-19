@@ -63,11 +63,18 @@ builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.WithOrigins(
-                "http://localhost:3000",  // React Web
-                "http://localhost:3001",  // React Admin
-                "http://localhost:19006"  // React Native (Expo)
-            )
+        policy.SetIsOriginAllowed(origin =>
+            {
+                // Allow localhost with any port
+                if (origin.StartsWith("http://localhost:") || origin.StartsWith("https://localhost:"))
+                    return true;
+                
+                // Allow *.localhost subdomains for tenant isolation
+                if (origin.Contains(".localhost:"))
+                    return true;
+                
+                return false;
+            })
             .AllowAnyMethod()
             .AllowAnyHeader()
             .AllowCredentials();

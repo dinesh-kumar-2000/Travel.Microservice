@@ -18,30 +18,31 @@ public class GetActiveTenantsQueryHandler : IRequestHandler<GetActiveTenantsQuer
     {
         var tenants = await _tenantRepository.GetActiveTenantsAsync(cancellationToken);
 
-        return tenants.Select(t => new TenantDto(
-            t.Id,
-            t.Name,
-            t.Name, // DisplayName - can be enhanced later
-            t.Subdomain,
-            t.ContactEmail,
-            t.Status.ToString(),
-            t.Tier.ToString(),
-            t.Configuration.LogoUrl,
-            GenerateDescription(t),
-            t.Status == TenantStatus.Active
-        ));
-    }
-
-    private static string GenerateDescription(Tenant tenant)
-    {
-        return tenant.Tier switch
+        return tenants.Select(t =>
         {
-            SubscriptionTier.Basic => "Basic travel services",
-            SubscriptionTier.Standard => "Standard travel solutions",
-            SubscriptionTier.Premium => "Premium travel experiences",
-            SubscriptionTier.Enterprise => "Enterprise travel management",
-            _ => "Travel services"
-        };
+            var settings = new TenantSettings(
+                Theme: "light",
+                PrimaryColor: t.Configuration.PrimaryColor,
+                SecondaryColor: t.Configuration.SecondaryColor,
+                LogoUrl: t.Configuration.LogoUrl,
+                FaviconUrl: null,
+                CustomCss: null
+            );
+
+            return new TenantDto(
+                Id: t.Id,
+                Name: t.Name,
+                Subdomain: t.Subdomain,
+                ContactEmail: t.ContactEmail,
+                Status: t.Status.ToString(),
+                Tier: t.Tier.ToString(),
+                Logo: t.Configuration.LogoUrl,
+                PrimaryColor: t.Configuration.PrimaryColor,
+                SecondaryColor: t.Configuration.SecondaryColor,
+                IsActive: t.Status == TenantStatus.Active,
+                Settings: settings
+            );
+        });
     }
 }
 

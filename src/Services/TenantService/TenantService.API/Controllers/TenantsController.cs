@@ -79,6 +79,32 @@ public class TenantsController : ControllerBase
     }
 
     /// <summary>
+    /// Get tenant by subdomain (public endpoint for tenant resolution)
+    /// </summary>
+    [HttpGet("subdomain/{subdomain}")]
+    [AllowAnonymous]
+    [EnableRateLimiting("fixed")]
+    [ProducesResponseType(typeof(ApiResponse<TenantDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ApiResponse<TenantDto>>> GetBySubdomain(string subdomain)
+    {
+        _logger.LogInformation("Getting tenant by subdomain: {Subdomain}", subdomain);
+
+        var query = new GetTenantBySubdomainQuery(subdomain);
+        var result = await _mediator.Send(query);
+
+        if (result == null)
+        {
+            return NotFound(ApiResponse<TenantDto>.ErrorResponse("Tenant not found", new Dictionary<string, string[]>
+            {
+                { "subdomain", new[] { $"No tenant found with subdomain '{subdomain}'" } }
+            }));
+        }
+
+        return Ok(ApiResponse<TenantDto>.SuccessResponse(result, "Tenant retrieved successfully"));
+    }
+
+    /// <summary>
     /// Get all active tenants (public endpoint for tenant selection)
     /// </summary>
     [HttpGet("public/active")]
