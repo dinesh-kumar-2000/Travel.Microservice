@@ -1,4 +1,5 @@
 using EventBus.Extensions;
+using Identity.Shared;
 using Serilog;
 using Serilog.Formatting.Compact;
 using SharedKernel.Auditing;
@@ -23,15 +24,44 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 var redisConnection = builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379";
 var rabbitMqHost = builder.Configuration["RabbitMQ:Host"] ?? "localhost";
 
+var jwtSettings = new JwtSettings
+{
+    SecretKey = builder.Configuration["Jwt:SecretKey"]!,
+    Issuer = builder.Configuration["Jwt:Issuer"] ?? "TravelPortal",
+    Audience = builder.Configuration["Jwt:Audience"] ?? "TravelPortal"
+};
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new() { Title = "Tenant Service API", Version = "v1" });
+    
+    // JWT Bearer Authorization in Swagger
+    c.AddSecurityDefinition("Bearer", new()
+    {
+        Description = "JWT Authorization header using the Bearer scheme. Example: \"Bearer {token}\"",
+        Name = "Authorization",
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
+        Scheme = "Bearer"
+    });
+    
+    c.AddSecurityRequirement(new()
+    {
+        {
+            new()
+            {
+                Reference = new() { Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme, Id = "Bearer" }
+            },
+            Array.Empty<string>()
+        }
+    });
 });
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<SharedKernel.Behaviors.ICorrelationIdProvider, SharedKernel.Behaviors.CorrelationIdProvider>();
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 
 // Distributed Cache (Redis)
 builder.Services.AddStackExchangeRedisCache(options =>
@@ -43,6 +73,9 @@ builder.Services.AddSingleton<ICacheService, RedisCacheService>();
 
 // Audit Service
 builder.Services.AddScoped<IAuditService, AuditService>();
+
+// JWT Authentication
+builder.Services.AddJwtAuthentication(jwtSettings);
 
 // API Versioning
 builder.Services.AddApiVersioningConfiguration();
@@ -98,8 +131,8 @@ app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
 
 app.UseHttpsRedirection();
 app.UseRateLimiter();
-// Note: Authorization is not configured since this service has public endpoints
-// app.UseAuthorization();
+app.UseAuthentication();
+app.UseAuthorization();
 app.MapControllers();
 app.MapHealthChecks("/health");
 app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions

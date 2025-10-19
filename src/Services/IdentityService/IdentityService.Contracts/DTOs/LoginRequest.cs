@@ -5,7 +5,8 @@ namespace IdentityService.Contracts.DTOs;
 public record LoginRequest(
     [property: JsonPropertyName("email")] string Email,
     [property: JsonPropertyName("password")] string Password,
-    [property: JsonPropertyName("tenantId")] string TenantId
+    [property: JsonPropertyName("domain")] string? Domain,
+    [property: JsonPropertyName("tenantId")] string? TenantId
 );
 
 public record LoginResponse(

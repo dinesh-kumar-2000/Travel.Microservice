@@ -51,9 +51,18 @@ public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, R
 
         await _userRepository.AddAsync(user, cancellationToken);
 
-        // Assign default Customer role
-        var customerRoleId = "role_customer"; // This should come from seed data
-        await _userRepository.AssignRoleAsync(userId, customerRoleId, cancellationToken);
+        // Assign role (default to Customer if not specified)
+        var roleName = request.Role ?? "Customer";
+        var roleId = roleName switch
+        {
+            "SuperAdmin" => "role_superadmin",
+            "TenantAdmin" => "role_tenantadmin",
+            "Agent" => "role_agent",
+            "Customer" => "role_customer",
+            _ => "role_customer"
+        };
+        
+        await _userRepository.AssignRoleAsync(userId, roleId, cancellationToken);
 
         // Get user roles
         var roles = await _userRepository.GetUserRolesAsync(userId, cancellationToken);

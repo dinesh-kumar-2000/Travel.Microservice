@@ -14,8 +14,10 @@ public class LoginCommandValidator : AbstractValidator<LoginCommand>
         RuleFor(x => x.Password)
             .NotEmpty().WithMessage("Password is required");
 
-        RuleFor(x => x.TenantId)
-            .NotEmpty().WithMessage("Tenant ID is required");
+        // Either Domain OR TenantId must be provided (not both required)
+        RuleFor(x => x)
+            .Must(x => !string.IsNullOrEmpty(x.Domain) || !string.IsNullOrEmpty(x.TenantId))
+            .WithMessage("Either Domain or TenantId must be provided");
     }
 }
 

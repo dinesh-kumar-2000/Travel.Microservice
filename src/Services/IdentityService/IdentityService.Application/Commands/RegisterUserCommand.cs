@@ -9,6 +9,7 @@ public record RegisterUserCommand(
     string FirstName,
     string LastName,
     string PhoneNumber,
-    string TenantId
+    string TenantId,
+    string? Role = null // Optional: SuperAdmin, TenantAdmin, Agent, Customer (default: Customer)
 ) : IRequest<RegisterUserResponse>;
 

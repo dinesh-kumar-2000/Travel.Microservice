@@ -77,12 +77,13 @@ public class AuthController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<LoginResponse>> Login([FromBody] LoginRequest request)
     {
-        _logger.LogInformation("Login attempt for user {Email} in tenant {TenantId}", 
-            request.Email, request.TenantId);
+        _logger.LogInformation("Login attempt for user {Email} from domain {Domain}", 
+            request.Email, request.Domain ?? request.TenantId ?? "unknown");
 
         var command = new LoginCommand(
             request.Email,
             request.Password,
+            request.Domain,
             request.TenantId
         );
 
@@ -91,7 +92,7 @@ public class AuthController : ControllerBase
         // Audit log
         await _auditService.LogAsync(new AuditEntry
         {
-            TenantId = request.TenantId,
+            TenantId = request.TenantId ?? result.User.Id,
             UserId = result.User.Id,
             Action = "Login",
             EntityType = "User",
@@ -100,7 +101,8 @@ public class AuthController : ControllerBase
             UserAgent = HttpContext.Request.Headers["User-Agent"].ToString()
         });
         
-        _logger.LogInformation("User {Email} logged in successfully", request.Email);
+        _logger.LogInformation("User {Email} logged in successfully with roles: {Roles}", 
+            request.Email, string.Join(", ", result.User.Roles));
 
         return Ok(result);
     }
