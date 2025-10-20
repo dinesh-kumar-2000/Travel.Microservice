@@ -11,6 +11,7 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, string connectionString)
     {
         services.AddScoped<ITenantRepository>(sp => new TenantRepository(connectionString));
+        services.AddScoped<ILandingPageRepository>(sp => new LandingPageRepository(connectionString));
         return services;
     }
 
