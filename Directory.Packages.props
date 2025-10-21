@@ -69,6 +69,7 @@
     
     <!-- API Gateway -->
     <PackageVersion Include="Ocelot" Version="22.0.1" />
+    <PackageVersion Include="Ocelot.Provider.Polly" Version="22.0.1" />
     
     <!-- Health Checks -->
     <PackageVersion Include="AspNetCore.HealthChecks.UI" Version="8.0.0" />

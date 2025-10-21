@@ -4,6 +4,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Ocelot" />
+    <PackageReference Include="Ocelot.Provider.Polly" />
     <PackageReference Include="Serilog.AspNetCore" />
   </ItemGroup>
 </Project>
