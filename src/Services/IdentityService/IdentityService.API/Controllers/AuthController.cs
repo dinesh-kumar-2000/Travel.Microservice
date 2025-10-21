@@ -1,8 +1,10 @@
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using IdentityService.Application.Commands;
+using IdentityService.Application.Queries;
 using IdentityService.Contracts.DTOs;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.Authorization;
 using SharedKernel.Auditing;
 
 namespace IdentityService.API.Controllers;
@@ -103,6 +105,137 @@ public class AuthController : ControllerBase
         
         _logger.LogInformation("User {Email} logged in successfully with roles: {Roles}", 
             request.Email, string.Join(", ", result.User.Roles));
+
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Refresh access token using refresh token
+    /// </summary>
+    [HttpPost("refresh-token")]
+    [EnableRateLimiting("fixed")]
+    [ProducesResponseType(typeof(RefreshTokenResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<RefreshTokenResponse>> RefreshToken([FromBody] RefreshTokenRequest request)
+    {
+        _logger.LogInformation("Refresh token request for user {UserId}", request.UserId);
+
+        var command = new RefreshTokenCommand(
+            request.RefreshToken,
+            request.UserId
+        );
+
+        var result = await _mediator.Send(command);
+        
+        // Audit log
+        await _auditService.LogAsync(new AuditEntry
+        {
+            TenantId = "system",
+            UserId = request.UserId,
+            Action = "RefreshToken",
+            EntityType = "User",
+            EntityId = request.UserId,
+            IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            UserAgent = HttpContext.Request.Headers["User-Agent"].ToString()
+        });
+        
+        _logger.LogInformation("Token refreshed successfully for user {UserId}", request.UserId);
+
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Revoke refresh token (logout)
+    /// </summary>
+    [HttpPost("revoke-token")]
+    [Authorize]
+    [EnableRateLimiting("fixed")]
+    [ProducesResponseType(typeof(RevokeTokenResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<RevokeTokenResponse>> RevokeToken([FromBody] RevokeTokenRequest request)
+    {
+        _logger.LogInformation("Revoke token request for user {UserId}", request.UserId);
+
+        var command = new RevokeTokenCommand(request.UserId);
+
+        var result = await _mediator.Send(command);
+        
+        // Audit log
+        await _auditService.LogAsync(new AuditEntry
+        {
+            TenantId = "system",
+            UserId = request.UserId,
+            Action = "RevokeToken",
+            EntityType = "User",
+            EntityId = request.UserId,
+            IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            UserAgent = HttpContext.Request.Headers["User-Agent"].ToString()
+        });
+        
+        _logger.LogInformation("Token revoked successfully for user {UserId}", request.UserId);
+
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Get user profile
+    /// </summary>
+    [HttpGet("profile/{userId}")]
+    [Authorize]
+    [EnableRateLimiting("fixed")]
+    [ProducesResponseType(typeof(GetProfileResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<GetProfileResponse>> GetProfile(string userId)
+    {
+        _logger.LogInformation("Get profile request for user {UserId}", userId);
+
+        var query = new GetProfileQuery(userId);
+
+        var result = await _mediator.Send(query);
+        
+        _logger.LogInformation("Profile retrieved successfully for user {UserId}", userId);
+
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Update user profile
+    /// </summary>
+    [HttpPut("profile")]
+    [Authorize]
+    [EnableRateLimiting("fixed")]
+    [ProducesResponseType(typeof(UpdateProfileResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<UpdateProfileResponse>> UpdateProfile([FromBody] UpdateProfileRequest request)
+    {
+        _logger.LogInformation("Update profile request for user {UserId}", request.UserId);
+
+        var command = new UpdateProfileCommand(
+            request.UserId,
+            request.FirstName,
+            request.LastName,
+            request.PhoneNumber
+        );
+
+        var result = await _mediator.Send(command);
+        
+        // Audit log
+        await _auditService.LogAsync(new AuditEntry
+        {
+            TenantId = "system",
+            UserId = request.UserId,
+            Action = "UpdateProfile",
+            EntityType = "User",
+            EntityId = request.UserId,
+            NewValues = System.Text.Json.JsonSerializer.Serialize(new { request.FirstName, request.LastName, request.PhoneNumber }),
+            IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            UserAgent = HttpContext.Request.Headers["User-Agent"].ToString()
+        });
+        
+        _logger.LogInformation("Profile updated successfully for user {UserId}", request.UserId);
 
         return Ok(result);
     }
