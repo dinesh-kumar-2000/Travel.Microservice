@@ -6,8 +6,8 @@ services:
     image: postgres:16-alpine
     container_name: travel-postgres
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
     ports:
       - "5432:5432"
     volumes:
@@ -24,8 +24,8 @@ services:
     image: dpage/pgadmin4:latest
     container_name: travel-pgadmin
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@travel.com
-      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@travel.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
       PGADMIN_CONFIG_SERVER_MODE: 'False'
     ports:
       - "5050:80"
@@ -43,8 +43,8 @@ services:
       - "5672:5672"
       - "15672:15672"
     environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     networks:
@@ -108,8 +108,8 @@ services:
     ports:
       - "3100:3000"
     environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
       - GF_USERS_ALLOW_SIGN_UP=false
     volumes:
       - grafana_data:/var/lib/grafana
@@ -140,15 +140,15 @@ services:
       dockerfile: src/Services/IdentityService/IdentityService.API/Dockerfile
     container_name: identityservice-api
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=identity_db;Username=postgres;Password=postgres
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT:-Development}
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=identity_db;Username=${DB_USER:-postgres};Password=${DB_PASSWORD:-postgres}
       - ConnectionStrings__Redis=redis:6379
-      - Jwt__SecretKey=your-super-secret-key-at-least-32-characters-long-change-in-production
-      - Jwt__Issuer=TravelPortal
-      - Jwt__Audience=TravelPortal
+      - Jwt__SecretKey=${JWT_SECRET_KEY:-your-super-secret-key-at-least-32-characters-long-change-in-production}
+      - Jwt__Issuer=${JWT_ISSUER:-TravelPortal}
+      - Jwt__Audience=${JWT_AUDIENCE:-TravelPortal}
       - RabbitMQ__Host=rabbitmq
-      - RabbitMQ__Username=guest
-      - RabbitMQ__Password=guest
+      - RabbitMQ__Username=${RABBITMQ_USER:-guest}
+      - RabbitMQ__Password=${RABBITMQ_PASSWORD:-guest}
       - Jaeger__Host=jaeger
     ports:
       - "5001:8080"
@@ -171,12 +171,15 @@ services:
       dockerfile: src/Services/TenantService/TenantService.API/Dockerfile
     container_name: tenantservice-api
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=tenant_db;Username=postgres;Password=postgres
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT:-Development}
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=tenant_db;Username=${DB_USER:-postgres};Password=${DB_PASSWORD:-postgres}
       - ConnectionStrings__Redis=redis:6379
+      - Jwt__SecretKey=${JWT_SECRET_KEY:-your-super-secret-key-at-least-32-characters-long-change-in-production}
+      - Jwt__Issuer=${JWT_ISSUER:-TravelPortal}
+      - Jwt__Audience=${JWT_AUDIENCE:-TravelPortal}
       - RabbitMQ__Host=rabbitmq
-      - RabbitMQ__Username=guest
-      - RabbitMQ__Password=guest
+      - RabbitMQ__Username=${RABBITMQ_USER:-guest}
+      - RabbitMQ__Password=${RABBITMQ_PASSWORD:-guest}
     ports:
       - "5002:8080"
     depends_on:
@@ -196,12 +199,12 @@ services:
       dockerfile: src/Services/CatalogService/CatalogService.API/Dockerfile
     container_name: catalogservice-api
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=catalog_db;Username=postgres;Password=postgres
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT:-Development}
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=catalog_db;Username=${DB_USER:-postgres};Password=${DB_PASSWORD:-postgres}
       - ConnectionStrings__Redis=redis:6379
-      - Jwt__SecretKey=your-super-secret-key-at-least-32-characters-long-change-in-production
-      - Jwt__Issuer=TravelPortal
-      - Jwt__Audience=TravelPortal
+      - Jwt__SecretKey=${JWT_SECRET_KEY:-your-super-secret-key-at-least-32-characters-long-change-in-production}
+      - Jwt__Issuer=${JWT_ISSUER:-TravelPortal}
+      - Jwt__Audience=${JWT_AUDIENCE:-TravelPortal}
     ports:
       - "5003:8080"
     depends_on:
@@ -219,15 +222,15 @@ services:
       dockerfile: src/Services/BookingService/BookingService.API/Dockerfile
     container_name: bookingservice-api
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=booking_db;Username=postgres;Password=postgres
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT:-Development}
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=booking_db;Username=${DB_USER:-postgres};Password=${DB_PASSWORD:-postgres}
       - ConnectionStrings__Redis=redis:6379
-      - Jwt__SecretKey=your-super-secret-key-at-least-32-characters-long-change-in-production
-      - Jwt__Issuer=TravelPortal
-      - Jwt__Audience=TravelPortal
+      - Jwt__SecretKey=${JWT_SECRET_KEY:-your-super-secret-key-at-least-32-characters-long-change-in-production}
+      - Jwt__Issuer=${JWT_ISSUER:-TravelPortal}
+      - Jwt__Audience=${JWT_AUDIENCE:-TravelPortal}
       - RabbitMQ__Host=rabbitmq
-      - RabbitMQ__Username=guest
-      - RabbitMQ__Password=guest
+      - RabbitMQ__Username=${RABBITMQ_USER:-guest}
+      - RabbitMQ__Password=${RABBITMQ_PASSWORD:-guest}
     ports:
       - "5004:8080"
     depends_on:
@@ -247,15 +250,15 @@ services:
       dockerfile: src/Services/PaymentService/PaymentService.API/Dockerfile
     container_name: paymentservice-api
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=payment_db;Username=postgres;Password=postgres
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT:-Development}
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=payment_db;Username=${DB_USER:-postgres};Password=${DB_PASSWORD:-postgres}
       - ConnectionStrings__Redis=redis:6379
-      - Jwt__SecretKey=your-super-secret-key-at-least-32-characters-long-change-in-production
-      - Jwt__Issuer=TravelPortal
-      - Jwt__Audience=TravelPortal
+      - Jwt__SecretKey=${JWT_SECRET_KEY:-your-super-secret-key-at-least-32-characters-long-change-in-production}
+      - Jwt__Issuer=${JWT_ISSUER:-TravelPortal}
+      - Jwt__Audience=${JWT_AUDIENCE:-TravelPortal}
       - RabbitMQ__Host=rabbitmq
-      - RabbitMQ__Username=guest
-      - RabbitMQ__Password=guest
+      - RabbitMQ__Username=${RABBITMQ_USER:-guest}
+      - RabbitMQ__Password=${RABBITMQ_PASSWORD:-guest}
     ports:
       - "5005:8080"
     depends_on:
@@ -275,15 +278,15 @@ services:
       dockerfile: src/Services/NotificationService/NotificationService.API/Dockerfile
     container_name: notificationservice-api
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=notification_db;Username=postgres;Password=postgres
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT:-Development}
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=notification_db;Username=${DB_USER:-postgres};Password=${DB_PASSWORD:-postgres}
       - ConnectionStrings__Redis=redis:6379
-      - Jwt__SecretKey=your-super-secret-key-at-least-32-characters-long-change-in-production
-      - Jwt__Issuer=TravelPortal
-      - Jwt__Audience=TravelPortal
+      - Jwt__SecretKey=${JWT_SECRET_KEY:-your-super-secret-key-at-least-32-characters-long-change-in-production}
+      - Jwt__Issuer=${JWT_ISSUER:-TravelPortal}
+      - Jwt__Audience=${JWT_AUDIENCE:-TravelPortal}
       - RabbitMQ__Host=rabbitmq
-      - RabbitMQ__Username=guest
-      - RabbitMQ__Password=guest
+      - RabbitMQ__Username=${RABBITMQ_USER:-guest}
+      - RabbitMQ__Password=${RABBITMQ_PASSWORD:-guest}
     ports:
       - "5006:8080"
     depends_on:
@@ -303,12 +306,12 @@ services:
       dockerfile: src/Services/ReportingService/ReportingService.API/Dockerfile
     container_name: reportingservice-api
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=reporting_db;Username=postgres;Password=postgres
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT:-Development}
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=reporting_db;Username=${DB_USER:-postgres};Password=${DB_PASSWORD:-postgres}
       - ConnectionStrings__Redis=redis:6379
-      - Jwt__SecretKey=your-super-secret-key-at-least-32-characters-long-change-in-production
-      - Jwt__Issuer=TravelPortal
-      - Jwt__Audience=TravelPortal
+      - Jwt__SecretKey=${JWT_SECRET_KEY:-your-super-secret-key-at-least-32-characters-long-change-in-production}
+      - Jwt__Issuer=${JWT_ISSUER:-TravelPortal}
+      - Jwt__Audience=${JWT_AUDIENCE:-TravelPortal}
     ports:
       - "5007:8080"
     depends_on:
@@ -326,7 +329,10 @@ services:
       dockerfile: src/Services/Gateway/ApiGateway/Dockerfile
     container_name: apigateway
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT:-Development}
+      - Jwt__SecretKey=${JWT_SECRET_KEY:-your-super-secret-key-at-least-32-characters-long-change-in-production}
+      - Jwt__Issuer=${JWT_ISSUER:-TravelPortal}
+      - Jwt__Audience=${JWT_AUDIENCE:-TravelPortal}
     ports:
       - "8080:8080"
     depends_on:

@@ -97,6 +97,10 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+else
+{
+    app.UseHsts(); // HTTP Strict Transport Security for production
+}
 
 // Middleware pipeline
 app.UseCors();  // Enable CORS

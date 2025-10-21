@@ -6,6 +6,10 @@
     <PackageReference Include="Ocelot" />
     <PackageReference Include="Ocelot.Provider.Polly" />
     <PackageReference Include="Serilog.AspNetCore" />
+    <PackageReference Include="AspNetCore.HealthChecks.UI.Client" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../../BuildingBlocks/Identity.Shared/Identity.Shared.csproj" />
   </ItemGroup>
 </Project>
 

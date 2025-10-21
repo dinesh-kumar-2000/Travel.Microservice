@@ -1,3 +1,4 @@
+using Identity.Shared;
 using Ocelot.DependencyInjection;
 using Ocelot.Middleware;
 using Ocelot.Provider.Polly;
@@ -8,6 +9,7 @@ var builder = WebApplication.CreateBuilder(args);
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
     .Enrich.WithProperty("Service", "ApiGateway")
+    .Enrich.FromLogContext()
     .CreateLogger();
 
 builder.Host.UseSerilog();
@@ -17,21 +19,62 @@ builder.Configuration
     .AddJsonFile("ocelot.json", optional: false, reloadOnChange: true)
     .AddEnvironmentVariables();
 
+// JWT Authentication
+var jwtSettings = new JwtSettings
+{
+    SecretKey = builder.Configuration["Jwt:SecretKey"] ?? "your-super-secret-key-at-least-32-characters-long-change-in-production",
+    Issuer = builder.Configuration["Jwt:Issuer"] ?? "TravelPortal",
+    Audience = builder.Configuration["Jwt:Audience"] ?? "TravelPortal"
+};
+
+builder.Services.AddJwtAuthentication(jwtSettings);
+
 builder.Services.AddOcelot(builder.Configuration)
     .AddPolly();
+
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader();
+        policy.SetIsOriginAllowed(origin =>
+            {
+                // Allow localhost with any port
+                if (origin.StartsWith("http://localhost:") || origin.StartsWith("https://localhost:"))
+                    return true;
+                
+                // Allow *.localhost subdomains for tenant isolation
+                if (origin.Contains(".localhost:"))
+                    return true;
+                
+                return false;
+            })
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .AllowCredentials();
     });
 });
 
+// Health Checks
+builder.Services.AddHealthChecks();
+
 var app = builder.Build();
 
+// Middleware Pipeline
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHsts(); // HTTP Strict Transport Security
+}
+
 app.UseCors();
+app.UseHttpsRedirection();
+
+// Authentication & Authorization
+app.UseAuthentication();
+app.UseAuthorization();
+
+// Health check endpoints
+app.MapHealthChecks("/health");
+
 await app.UseOcelot();
 
 app.Run();

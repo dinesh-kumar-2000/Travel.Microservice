@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using System.ComponentModel.DataAnnotations;
 using TenantService.Application.Commands;
 using TenantService.Application.Queries;
 using TenantService.Contracts.DTOs;
@@ -79,7 +80,11 @@ public class TenantsController : ControllerBase
     [ProducesResponseType(typeof(TenantDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<ActionResult<TenantDto>> GetById(string id)
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<TenantDto>> GetById(
+        [FromRoute]
+        [MaxLength(50)]
+        string id)
     {
         _logger.LogInformation("SuperAdmin {UserId} getting tenant {TenantId}", 
             _currentUser.UserId, id);
@@ -98,7 +103,12 @@ public class TenantsController : ControllerBase
     [EnableRateLimiting("fixed")]
     [ProducesResponseType(typeof(ApiResponse<TenantDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<ApiResponse<TenantDto>>> GetBySubdomain(string subdomain)
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<ApiResponse<TenantDto>>> GetBySubdomain(
+        [FromRoute]
+        [RegularExpression(@"^[a-zA-Z0-9-]{1,63}$", ErrorMessage = "Subdomain must contain only letters, numbers, and hyphens (max 63 characters)")]
+        [MaxLength(63)]
+        string subdomain)
     {
         _logger.LogInformation("Getting tenant by subdomain: {Subdomain}", subdomain);
 
