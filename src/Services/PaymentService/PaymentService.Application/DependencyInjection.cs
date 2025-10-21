@@ -17,6 +17,11 @@ public static class DependencyInjection
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(SharedKernel.Behaviors.CorrelationIdBehavior<,>));
         
+        // Register payment gateways
+        services.AddSingleton<Services.IPaymentGateway, Services.StripePaymentGateway>();
+        services.AddSingleton<Services.IPaymentGateway, Services.RazorpayPaymentGateway>();
+        services.AddSingleton<Services.IPaymentGatewayFactory, Services.PaymentGatewayFactory>();
+        
         return services;
     }
 }

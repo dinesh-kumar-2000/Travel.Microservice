@@ -127,16 +127,15 @@ public class PaymentRepository : IPaymentRepository
         await _cache.RemoveAsync($"payment:{_tenantContext.TenantId}:{id}", cancellationToken);
     }
 
-    public async Task<Payment?> GetByBookingIdAsync(string bookingId, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<Payment>> GetByBookingIdAsync(string bookingId, CancellationToken cancellationToken = default)
     {
         using var connection = CreateConnection();
         const string sql = @"
             SELECT * FROM payments 
             WHERE booking_id = @BookingId AND tenant_id = @TenantId AND is_deleted = false
-            ORDER BY created_at DESC
-            LIMIT 1";
+            ORDER BY created_at DESC";
 
-        return await connection.QueryFirstOrDefaultAsync<Payment>(sql, new 
+        return await connection.QueryAsync<Payment>(sql, new 
         { 
             BookingId = bookingId, 
             TenantId = _tenantContext.TenantId 
