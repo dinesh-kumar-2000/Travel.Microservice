@@ -1,32 +1,41 @@
 using Dapper;
 using TenantService.Domain.Entities;
 using TenantService.Domain.Repositories;
-using System.Data;
-using Npgsql;
+using SharedKernel.Data;
+using Microsoft.Extensions.Logging;
 using System.Text.Json;
 
 namespace TenantService.Infrastructure.Repositories;
 
-public class TenantRepository : ITenantRepository
+/// <summary>
+/// Repository for tenant operations
+/// Inherits common CRUD operations from BaseRepository
+/// Note: Tenants themselves are not tenant-scoped, so we use BaseRepository instead of TenantBaseRepository
+/// </summary>
+public class TenantRepository : BaseRepository<Tenant, string>, ITenantRepository
 {
-    private readonly string _connectionString;
+    protected override string TableName => "tenants";
+    protected override string IdColumnName => "id";
 
-    public TenantRepository(string connectionString)
+    public TenantRepository(IDapperContext context, ILogger<TenantRepository> logger) 
+        : base(context, logger)
     {
-        _connectionString = connectionString;
     }
 
-    private IDbConnection CreateConnection() => new NpgsqlConnection(_connectionString);
+    #region Overridden Methods
 
-    public async Task<Tenant?> GetByIdAsync(string id, CancellationToken cancellationToken = default)
+    public override async Task<Tenant?> GetByIdAsync(string id, CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrEmpty(id))
+            throw new ArgumentNullException(nameof(id));
+
         using var connection = CreateConnection();
         var sql = "SELECT * FROM tenants WHERE id = @Id";
         var data = await connection.QueryFirstOrDefaultAsync<TenantData>(sql, new { Id = id });
         return data?.ToEntity();
     }
 
-    public async Task<IEnumerable<Tenant>> GetAllAsync(CancellationToken cancellationToken = default)
+    public override async Task<IEnumerable<Tenant>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         using var connection = CreateConnection();
         var sql = "SELECT * FROM tenants ORDER BY created_at DESC";
@@ -34,8 +43,11 @@ public class TenantRepository : ITenantRepository
         return data.Select(d => d.ToEntity());
     }
 
-    public async Task<string> AddAsync(Tenant entity, CancellationToken cancellationToken = default)
+    public override async Task<string> AddAsync(Tenant entity, CancellationToken cancellationToken = default)
     {
+        if (entity == null)
+            throw new ArgumentNullException(nameof(entity));
+
         using var connection = CreateConnection();
         var sql = @"INSERT INTO tenants (id, name, subdomain, custom_domain, contact_email, contact_phone, 
                     status, tier, configuration, subscription_expires_at, created_at)
@@ -43,11 +55,16 @@ public class TenantRepository : ITenantRepository
                     @Status, @Tier, @Configuration::jsonb, @SubscriptionExpiresAt, @CreatedAt)";
         
         await connection.ExecuteAsync(sql, TenantData.FromEntity(entity));
+        _logger.LogInformation("Tenant {TenantId} '{TenantName}' created with subdomain '{Subdomain}'", 
+            entity.Id, entity.Name, entity.Subdomain);
         return entity.Id;
     }
 
-    public async Task UpdateAsync(Tenant entity, CancellationToken cancellationToken = default)
+    public override async Task<bool> UpdateAsync(Tenant entity, CancellationToken cancellationToken = default)
     {
+        if (entity == null)
+            throw new ArgumentNullException(nameof(entity));
+
         using var connection = CreateConnection();
         var sql = @"UPDATE tenants SET name = @Name, custom_domain = @CustomDomain, 
                     contact_email = @ContactEmail, contact_phone = @ContactPhone,
@@ -55,17 +72,41 @@ public class TenantRepository : ITenantRepository
                     subscription_expires_at = @SubscriptionExpiresAt, updated_at = @UpdatedAt
                     WHERE id = @Id";
         
-        await connection.ExecuteAsync(sql, TenantData.FromEntity(entity));
+        var rowsAffected = await connection.ExecuteAsync(sql, TenantData.FromEntity(entity));
+        
+        if (rowsAffected > 0)
+        {
+            _logger.LogInformation("Tenant {TenantId} updated", entity.Id);
+        }
+
+        return rowsAffected > 0;
     }
 
-    public async Task DeleteAsync(string id, CancellationToken cancellationToken = default)
+    public override async Task<bool> DeleteAsync(string id, CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrEmpty(id))
+            throw new ArgumentNullException(nameof(id));
+
         using var connection = CreateConnection();
-        await connection.ExecuteAsync("DELETE FROM tenants WHERE id = @Id", new { Id = id });
+        var rowsAffected = await connection.ExecuteAsync("DELETE FROM tenants WHERE id = @Id", new { Id = id });
+        
+        if (rowsAffected > 0)
+        {
+            _logger.LogWarning("Tenant {TenantId} permanently deleted", id);
+        }
+
+        return rowsAffected > 0;
     }
+
+    #endregion
+
+    #region Domain-Specific Methods
 
     public async Task<Tenant?> GetBySubdomainAsync(string subdomain, CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrEmpty(subdomain))
+            throw new ArgumentNullException(nameof(subdomain));
+
         using var connection = CreateConnection();
         var sql = "SELECT * FROM tenants WHERE subdomain = @Subdomain";
         var data = await connection.QueryFirstOrDefaultAsync<TenantData>(sql, new { Subdomain = subdomain });
@@ -74,10 +115,10 @@ public class TenantRepository : ITenantRepository
 
     public async Task<bool> SubdomainExistsAsync(string subdomain, CancellationToken cancellationToken = default)
     {
-        using var connection = CreateConnection();
-        var count = await connection.ExecuteScalarAsync<int>(
-            "SELECT COUNT(1) FROM tenants WHERE subdomain = @Subdomain", new { Subdomain = subdomain });
-        return count > 0;
+        if (string.IsNullOrEmpty(subdomain))
+            throw new ArgumentNullException(nameof(subdomain));
+
+        return await ExistsAsync(subdomain, cancellationToken);
     }
 
     public async Task<IEnumerable<Tenant>> GetActiveTenantsAsync(CancellationToken cancellationToken = default)
@@ -94,6 +135,11 @@ public class TenantRepository : ITenantRepository
         string? status = null, 
         CancellationToken cancellationToken = default)
     {
+        if (page < 1)
+            throw new ArgumentException("Page must be greater than 0", nameof(page));
+        if (pageSize < 1 || pageSize > 100)
+            throw new ArgumentException("PageSize must be between 1 and 100", nameof(pageSize));
+
         using var connection = CreateConnection();
         
         var whereClauses = new List<string>();
@@ -126,6 +172,8 @@ public class TenantRepository : ITenantRepository
         var data = await connection.QueryAsync<TenantData>(dataSql, parameters);
         var tenants = data.Select(d => d.ToEntity());
         
+        _logger.LogDebug("Retrieved {Count} tenants (page {Page})", tenants.Count(), page);
+        
         return (tenants, totalCount);
     }
 
@@ -149,8 +197,14 @@ public class TenantRepository : ITenantRepository
         stats["PremiumTier"] = await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM tenants WHERE tier = 2");
         stats["EnterpriseTier"] = await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM tenants WHERE tier = 3");
         
+        _logger.LogDebug("Retrieved tenant statistics: {TotalCount} total tenants", stats["TotalTenants"]);
+        
         return stats;
     }
+
+    #endregion
+
+    #region Helper Classes
 
     private class TenantData
     {
@@ -198,5 +252,6 @@ public class TenantRepository : ITenantRepository
             };
         }
     }
-}
 
+    #endregion
+}

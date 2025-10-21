@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using TenantService.Domain.Repositories;
 using TenantService.Infrastructure.Repositories;
+using SharedKernel.Data;
 using DbUp;
 using System.Reflection;
 
@@ -10,8 +11,16 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, string connectionString)
     {
-        services.AddScoped<ITenantRepository>(sp => new TenantRepository(connectionString));
-        services.AddScoped<ILandingPageRepository>(sp => new LandingPageRepository(connectionString));
+        // Register DapperContext (IMPROVED: Single source of truth for connections)
+        services.AddSingleton<IDapperContext>(sp => new DapperContext(connectionString));
+
+        // Register repositories (IMPROVED: Using IDapperContext)
+        services.AddScoped<ITenantRepository, TenantRepository>();
+        services.AddScoped<ILandingPageRepository, LandingPageRepository>();
+        services.AddScoped<ISEORepository, SEORepository>();
+        services.AddScoped<ITemplateRepository, TemplateRepository>();
+        services.AddScoped<ICMSRepository, CMSRepository>();
+        
         return services;
     }
 
@@ -29,4 +38,3 @@ public static class DependencyInjection
             throw new Exception("Database migration failed", result.Error);
     }
 }
-

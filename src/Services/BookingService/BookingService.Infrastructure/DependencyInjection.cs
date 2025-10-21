@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using BookingService.Domain.Repositories;
 using BookingService.Infrastructure.Repositories;
+using SharedKernel.Data;
 using DbUp;
 using System.Reflection;
 
@@ -10,13 +11,14 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, string connectionString)
     {
-        services.AddScoped<IBookingRepository>(sp => 
-        {
-            var tenantContext = sp.GetRequiredService<Tenancy.ITenantContext>();
-            var cache = sp.GetRequiredService<SharedKernel.Caching.ICacheService>();
-            return new BookingRepository(connectionString, tenantContext, cache);
-        });
-        
+        // Register DapperContext (IMPROVED: Single source of truth for connections)
+        services.AddSingleton<IDapperContext>(sp => new DapperContext(connectionString));
+
+        // Register repositories (IMPROVED: Using IDapperContext instead of connection string)
+        services.AddScoped<IBookingRepository, BookingRepository>();
+        services.AddScoped<IReviewRepository, ReviewRepository>();
+        services.AddScoped<ILoyaltyRepository, LoyaltyRepository>();
+
         return services;
     }
 
@@ -34,4 +36,3 @@ public static class DependencyInjection
             throw new Exception("Database migration failed", result.Error);
     }
 }
-

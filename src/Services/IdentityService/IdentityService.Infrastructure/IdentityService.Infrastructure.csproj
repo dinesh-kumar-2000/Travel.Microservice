@@ -10,6 +10,7 @@
     <PackageReference Include="Dapper.Contrib" />
     <PackageReference Include="DbUp" />
     <PackageReference Include="dbup-postgresql" />
+    <PackageReference Include="BCrypt.Net-Next" />
   </ItemGroup>
 
   <ItemGroup>

@@ -77,7 +77,7 @@ public class PackageRepository : IPackageRepository
         return entity.Id;
     }
 
-    public async Task UpdateAsync(Package entity, CancellationToken cancellationToken = default)
+    public async Task<bool> UpdateAsync(Package entity, CancellationToken cancellationToken = default)
     {
         using var connection = CreateConnection();
         const string sql = @"
@@ -97,10 +97,12 @@ public class PackageRepository : IPackageRepository
                 updated_by = @UpdatedBy
             WHERE id = @Id AND tenant_id = @TenantId";
 
-        await connection.ExecuteAsync(sql, entity);
+        var rowsAffected = await connection.ExecuteAsync(sql, entity);
         
         // Invalidate cache
         await _cache.RemoveAsync($"package:{entity.TenantId}:{entity.Id}", cancellationToken);
+        
+        return rowsAffected > 0;
     }
 
     public async Task<bool> ReserveSlotsAsync(string packageId, int quantity, CancellationToken cancellationToken = default)
@@ -147,7 +149,7 @@ public class PackageRepository : IPackageRepository
         return result;
     }
 
-    public async Task DeleteAsync(string id, CancellationToken cancellationToken = default)
+    public async Task<bool> DeleteAsync(string id, CancellationToken cancellationToken = default)
     {
         using var connection = CreateConnection();
         const string sql = @"
@@ -156,7 +158,7 @@ public class PackageRepository : IPackageRepository
                 deleted_at = @DeletedAt 
             WHERE id = @Id AND tenant_id = @TenantId";
 
-        await connection.ExecuteAsync(sql, new 
+        var rowsAffected = await connection.ExecuteAsync(sql, new 
         { 
             Id = id, 
             TenantId = _tenantContext.TenantId,
@@ -165,6 +167,8 @@ public class PackageRepository : IPackageRepository
         
         // Invalidate cache
         await _cache.RemoveAsync($"package:{_tenantContext.TenantId}:{id}", cancellationToken);
+        
+        return rowsAffected > 0;
     }
 
     public async Task<PagedResult<Package>> SearchAsync(

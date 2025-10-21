@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using CatalogService.Domain.Repositories;
 using CatalogService.Infrastructure.Repositories;
+using SharedKernel.Data;
 using CatalogService.Infrastructure.Data;
 
 namespace CatalogService.Infrastructure;
@@ -9,17 +10,14 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, string connectionString)
     {
-        // Register DbConnectionFactory
+        // Register DapperContext (IMPROVED: Single source of truth for connections)
+        services.AddSingleton<IDapperContext>(sp => new DapperContext(connectionString));
+
+        // Keep IDbConnectionFactory for backward compatibility with existing code
         services.AddSingleton<IDbConnectionFactory>(new DbConnectionFactory(connectionString));
 
-        // Register repositories
-        services.AddScoped<IPackageRepository>(sp => 
-        {
-            var tenantContext = sp.GetRequiredService<Tenancy.ITenantContext>();
-            var cache = sp.GetRequiredService<SharedKernel.Caching.ICacheService>();
-            return new PackageRepository(connectionString, tenantContext, cache);
-        });
-
+        // Register repositories (IMPROVED: Using IDapperContext instead of IDbConnectionFactory)
+        services.AddScoped<IPackageRepository, PackageRepository>();
         services.AddScoped<IHotelRepository, HotelRepository>();
         services.AddScoped<IFlightRepository, FlightRepository>();
         services.AddScoped<ITourRepository, TourRepository>();
@@ -32,4 +30,3 @@ public static class DependencyInjection
         DatabaseInitializer.Initialize(connectionString);
     }
 }
-

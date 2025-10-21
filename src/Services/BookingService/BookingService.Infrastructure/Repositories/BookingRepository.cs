@@ -1,31 +1,41 @@
 using Dapper;
 using BookingService.Domain.Entities;
 using BookingService.Domain.Repositories;
+using SharedKernel.Data;
 using SharedKernel.Caching;
-using System.Data;
-using Npgsql;
-using Tenancy;
+using Microsoft.Extensions.Logging;
 
 namespace BookingService.Infrastructure.Repositories;
 
-public class BookingRepository : IBookingRepository
+/// <summary>
+/// Repository for booking operations with caching support
+/// Inherits common CRUD operations from TenantBaseRepository
+/// </summary>
+public class BookingRepository : TenantBaseRepository<Booking, string>, IBookingRepository
 {
-    private readonly string _connectionString;
-    private readonly ITenantContext _tenantContext;
     private readonly ICacheService _cache;
+    
+    protected override string TableName => "bookings";
+    protected override string IdColumnName => "id";
+    protected override string TenantIdColumnName => "tenant_id";
 
-    public BookingRepository(string connectionString, ITenantContext tenantContext, ICacheService cache)
+    public BookingRepository(
+        IDapperContext context,
+        ICacheService cache,
+        ILogger<BookingRepository> logger) 
+        : base(context, logger)
     {
-        _connectionString = connectionString;
-        _tenantContext = tenantContext;
-        _cache = cache;
+        _cache = cache ?? throw new ArgumentNullException(nameof(cache));
     }
 
-    private IDbConnection CreateConnection() => new NpgsqlConnection(_connectionString);
+    #region Overridden Methods with Caching
 
-    public async Task<Booking?> GetByIdAsync(string id, CancellationToken cancellationToken = default)
+    public override async Task<Booking?> GetByIdAsync(string id, Guid tenantId, CancellationToken cancellationToken = default)
     {
-        var cacheKey = $"booking:{_tenantContext.TenantId}:{id}";
+        if (string.IsNullOrEmpty(id))
+            throw new ArgumentNullException(nameof(id));
+
+        var cacheKey = $"booking:{tenantId}:{id}";
         
         return await _cache.GetOrSetAsync(cacheKey, async () =>
         {
@@ -37,24 +47,16 @@ public class BookingRepository : IBookingRepository
             return await connection.QueryFirstOrDefaultAsync<Booking>(sql, new 
             { 
                 Id = id, 
-                TenantId = _tenantContext.TenantId 
+                TenantId = tenantId 
             });
         }, TimeSpan.FromMinutes(5), cancellationToken);
     }
 
-    public async Task<IEnumerable<Booking>> GetAllAsync(CancellationToken cancellationToken = default)
+    public override async Task<string> AddAsync(Booking entity, CancellationToken cancellationToken = default)
     {
-        using var connection = CreateConnection();
-        const string sql = @"
-            SELECT * FROM bookings 
-            WHERE tenant_id = @TenantId AND is_deleted = false
-            ORDER BY created_at DESC";
+        if (entity == null)
+            throw new ArgumentNullException(nameof(entity));
 
-        return await connection.QueryAsync<Booking>(sql, new { TenantId = _tenantContext.TenantId });
-    }
-
-    public async Task<string> AddAsync(Booking entity, CancellationToken cancellationToken = default)
-    {
         using var connection = CreateConnection();
         
         // Generate booking reference using database function if not set
@@ -95,11 +97,15 @@ public class BookingRepository : IBookingRepository
             entity.CreatedAt
         });
         
+        _logger.LogInformation("Booking {BookingId} created with reference {Reference}", entity.Id, bookingReference);
         return entity.Id;
     }
 
-    public async Task UpdateAsync(Booking entity, CancellationToken cancellationToken = default)
+    public override async Task<bool> UpdateAsync(Booking entity, CancellationToken cancellationToken = default)
     {
+        if (entity == null)
+            throw new ArgumentNullException(nameof(entity));
+
         using var connection = CreateConnection();
         const string sql = @"
             UPDATE bookings 
@@ -109,33 +115,53 @@ public class BookingRepository : IBookingRepository
                 updated_by = @UpdatedBy
             WHERE id = @Id AND tenant_id = @TenantId";
 
-        await connection.ExecuteAsync(sql, entity);
+        var rowsAffected = await connection.ExecuteAsync(sql, entity);
         
-        // Invalidate cache
-        await _cache.RemoveAsync($"booking:{entity.TenantId}:{entity.Id}", cancellationToken);
+        if (rowsAffected > 0)
+        {
+            // Invalidate cache
+            await _cache.RemoveAsync($"booking:{entity.TenantId}:{entity.Id}", cancellationToken);
+            _logger.LogInformation("Booking {BookingId} updated", entity.Id);
+        }
+
+        return rowsAffected > 0;
     }
 
-    public async Task DeleteAsync(string id, CancellationToken cancellationToken = default)
+    public override async Task<bool> DeleteAsync(string id, CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrEmpty(id))
+            throw new ArgumentNullException(nameof(id));
+
         using var connection = CreateConnection();
         const string sql = @"
             UPDATE bookings 
             SET is_deleted = true, 
                 deleted_at = @DeletedAt 
-            WHERE id = @Id AND tenant_id = @TenantId";
+            WHERE id = @Id";
 
-        await connection.ExecuteAsync(sql, new 
+        var rowsAffected = await connection.ExecuteAsync(sql, new 
         { 
-            Id = id, 
-            TenantId = _tenantContext.TenantId,
+            Id = id,
             DeletedAt = DateTime.UtcNow 
         });
         
-        await _cache.RemoveAsync($"booking:{_tenantContext.TenantId}:{id}", cancellationToken);
+        if (rowsAffected > 0)
+        {
+            _logger.LogInformation("Booking {BookingId} deleted (soft delete)", id);
+        }
+
+        return rowsAffected > 0;
     }
+
+    #endregion
+
+    #region Domain-Specific Methods
 
     public async Task<Booking?> GetByIdempotencyKeyAsync(string idempotencyKey, CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrEmpty(idempotencyKey))
+            throw new ArgumentNullException(nameof(idempotencyKey));
+
         using var connection = CreateConnection();
         const string sql = @"
             SELECT * FROM bookings 
@@ -146,6 +172,11 @@ public class BookingRepository : IBookingRepository
 
     public async Task<IEnumerable<Booking>> GetByCustomerIdAsync(string customerId, string tenantId, CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrEmpty(customerId))
+            throw new ArgumentNullException(nameof(customerId));
+        if (string.IsNullOrEmpty(tenantId))
+            throw new ArgumentNullException(nameof(tenantId));
+
         using var connection = CreateConnection();
         const string sql = @"
             SELECT * FROM bookings 
@@ -165,6 +196,13 @@ public class BookingRepository : IBookingRepository
         int pageSize = 10,
         CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrEmpty(tenantId))
+            throw new ArgumentNullException(nameof(tenantId));
+        if (page < 1)
+            throw new ArgumentException("Page must be greater than 0", nameof(page));
+        if (pageSize < 1 || pageSize > 100)
+            throw new ArgumentException("PageSize must be between 1 and 100", nameof(pageSize));
+
         using var connection = CreateConnection();
         
         var whereClauses = new List<string> { "tenant_id = @TenantId", "is_deleted = false" };
@@ -202,11 +240,16 @@ public class BookingRepository : IBookingRepository
         
         var bookings = await connection.QueryAsync<Booking>(dataSql, parameters);
         
+        _logger.LogDebug("Retrieved {Count} bookings for tenant {TenantId} (page {Page})", bookings.Count(), tenantId, page);
+        
         return (bookings, totalCount);
     }
 
     public async Task<Booking?> GetByReferenceAsync(string bookingReference, CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrEmpty(bookingReference))
+            throw new ArgumentNullException(nameof(bookingReference));
+
         using var connection = CreateConnection();
         const string sql = @"
             SELECT * FROM bookings 
@@ -215,5 +258,6 @@ public class BookingRepository : IBookingRepository
 
         return await connection.QueryFirstOrDefaultAsync<Booking>(sql, new { BookingReference = bookingReference });
     }
-}
 
+    #endregion
+}

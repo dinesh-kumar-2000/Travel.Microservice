@@ -1,96 +1,34 @@
 using Dapper;
 using CatalogService.Domain.Entities;
 using CatalogService.Domain.Repositories;
-using CatalogService.Infrastructure.Data;
-using Tenancy;
+using SharedKernel.Data;
+using Microsoft.Extensions.Logging;
 
 namespace CatalogService.Infrastructure.Repositories;
 
-public class HotelRepository : IHotelRepository
+/// <summary>
+/// Repository for hotel operations
+/// Inherits common CRUD operations from TenantBaseRepository
+/// </summary>
+public class HotelRepository : TenantBaseRepository<Hotel, string>, IHotelRepository
 {
-    private readonly IDbConnectionFactory _connectionFactory;
-    private readonly ITenantContext _tenantContext;
+    protected override string TableName => "hotels";
+    protected override string IdColumnName => "id";
+    protected override string TenantIdColumnName => "tenant_id";
 
-    public HotelRepository(IDbConnectionFactory connectionFactory, ITenantContext tenantContext)
+    public HotelRepository(IDapperContext context, ILogger<HotelRepository> logger) 
+        : base(context, logger)
     {
-        _connectionFactory = connectionFactory;
-        _tenantContext = tenantContext;
     }
 
-    public async Task<Hotel?> GetByIdAsync(string id, CancellationToken cancellationToken = default)
+    #region Overridden Methods
+
+    public override async Task<string> AddAsync(Hotel entity, CancellationToken cancellationToken = default)
     {
-        using var connection = _connectionFactory.CreateConnection();
-        
-        const string sql = @"
-            SELECT id AS Id,
-                   tenant_id AS TenantId,
-                   name AS Name,
-                   description AS Description,
-                   location AS Location,
-                   address AS Address,
-                   city AS City,
-                   country AS Country,
-                   star_rating AS StarRating,
-                   price_per_night AS PricePerNight,
-                   currency AS Currency,
-                   total_rooms AS TotalRooms,
-                   available_rooms AS AvailableRooms,
-                   status AS Status,
-                   amenities AS Amenities,
-                   images AS Images,
-                   latitude AS Latitude,
-                   longitude AS Longitude,
-                   contact_email AS ContactEmail,
-                   contact_phone AS ContactPhone,
-                   created_at AS CreatedAt,
-                   updated_at AS UpdatedAt
-            FROM hotels
-            WHERE id = @Id AND tenant_id = @TenantId AND is_deleted = false";
+        if (entity == null)
+            throw new ArgumentNullException(nameof(entity));
 
-        return await connection.QueryFirstOrDefaultAsync<Hotel>(sql, new 
-        { 
-            Id = id, 
-            TenantId = _tenantContext.TenantId 
-        });
-    }
-
-    public async Task<IEnumerable<Hotel>> GetAllAsync(CancellationToken cancellationToken = default)
-    {
-        using var connection = _connectionFactory.CreateConnection();
-        
-        const string sql = @"
-            SELECT id AS Id,
-                   tenant_id AS TenantId,
-                   name AS Name,
-                   description AS Description,
-                   location AS Location,
-                   address AS Address,
-                   city AS City,
-                   country AS Country,
-                   star_rating AS StarRating,
-                   price_per_night AS PricePerNight,
-                   currency AS Currency,
-                   total_rooms AS TotalRooms,
-                   available_rooms AS AvailableRooms,
-                   status AS Status,
-                   amenities AS Amenities,
-                   images AS Images,
-                   latitude AS Latitude,
-                   longitude AS Longitude,
-                   contact_email AS ContactEmail,
-                   contact_phone AS ContactPhone,
-                   created_at AS CreatedAt,
-                   updated_at AS UpdatedAt
-            FROM hotels
-            WHERE tenant_id = @TenantId AND is_deleted = false
-            ORDER BY created_at DESC";
-
-        return await connection.QueryAsync<Hotel>(sql, new { TenantId = _tenantContext.TenantId });
-    }
-
-    public async Task<string> AddAsync(Hotel entity, CancellationToken cancellationToken = default)
-    {
-        using var connection = _connectionFactory.CreateConnection();
+        using var connection = CreateConnection();
         
         const string sql = @"
             INSERT INTO hotels (
@@ -107,12 +45,16 @@ public class HotelRepository : IHotelRepository
             )";
         
         await connection.ExecuteAsync(sql, entity);
+        _logger.LogInformation("Hotel {HotelId} '{HotelName}' created for tenant {TenantId}", entity.Id, entity.Name, entity.TenantId);
         return entity.Id;
     }
 
-    public async Task UpdateAsync(Hotel entity, CancellationToken cancellationToken = default)
+    public override async Task<bool> UpdateAsync(Hotel entity, CancellationToken cancellationToken = default)
     {
-        using var connection = _connectionFactory.CreateConnection();
+        if (entity == null)
+            throw new ArgumentNullException(nameof(entity));
+
+        using var connection = CreateConnection();
         
         const string sql = @"
             UPDATE hotels SET
@@ -125,26 +67,46 @@ public class HotelRepository : IHotelRepository
                 updated_at = @UpdatedAt
             WHERE id = @Id AND tenant_id = @TenantId";
         
-        await connection.ExecuteAsync(sql, entity);
+        var rowsAffected = await connection.ExecuteAsync(sql, entity);
+        
+        if (rowsAffected > 0)
+        {
+            _logger.LogInformation("Hotel {HotelId} updated", entity.Id);
+        }
+
+        return rowsAffected > 0;
     }
 
-    public async Task DeleteAsync(string id, CancellationToken cancellationToken = default)
+    public override async Task<bool> DeleteAsync(string id, CancellationToken cancellationToken = default)
     {
-        using var connection = _connectionFactory.CreateConnection();
+        if (string.IsNullOrEmpty(id))
+            throw new ArgumentNullException(nameof(id));
+
+        using var connection = CreateConnection();
         
         const string sql = @"
             UPDATE hotels 
             SET is_deleted = true,
                 deleted_at = @DeletedAt
-            WHERE id = @Id AND tenant_id = @TenantId";
+            WHERE id = @Id";
 
-        await connection.ExecuteAsync(sql, new 
+        var rowsAffected = await connection.ExecuteAsync(sql, new 
         { 
-            Id = id, 
-            TenantId = _tenantContext.TenantId, 
+            Id = id,
             DeletedAt = DateTime.UtcNow 
         });
+
+        if (rowsAffected > 0)
+        {
+            _logger.LogInformation("Hotel {HotelId} deleted (soft delete)", id);
+        }
+
+        return rowsAffected > 0;
     }
+
+    #endregion
+
+    #region Domain-Specific Methods
 
     public async Task<(IEnumerable<Hotel> Hotels, int TotalCount)> SearchHotelsAsync(
         string tenantId,
@@ -158,7 +120,14 @@ public class HotelRepository : IHotelRepository
         int pageSize = 10,
         CancellationToken cancellationToken = default)
     {
-        using var connection = _connectionFactory.CreateConnection();
+        if (string.IsNullOrEmpty(tenantId))
+            throw new ArgumentNullException(nameof(tenantId));
+        if (page < 1)
+            throw new ArgumentException("Page must be greater than 0", nameof(page));
+        if (pageSize < 1 || pageSize > 100)
+            throw new ArgumentException("PageSize must be between 1 and 100", nameof(pageSize));
+
+        using var connection = CreateConnection();
         
         var whereClauses = new List<string> { "tenant_id = @TenantId", "is_deleted = false", "status = @Status" };
         var parameters = new DynamicParameters();
@@ -204,29 +173,7 @@ public class HotelRepository : IHotelRepository
         // Get paged data
         var offset = (page - 1) * pageSize;
         var dataSql = $@"
-            SELECT id AS Id,
-                   tenant_id AS TenantId,
-                   name AS Name,
-                   description AS Description,
-                   location AS Location,
-                   address AS Address,
-                   city AS City,
-                   country AS Country,
-                   star_rating AS StarRating,
-                   price_per_night AS PricePerNight,
-                   currency AS Currency,
-                   total_rooms AS TotalRooms,
-                   available_rooms AS AvailableRooms,
-                   status AS Status,
-                   amenities AS Amenities,
-                   images AS Images,
-                   latitude AS Latitude,
-                   longitude AS Longitude,
-                   contact_email AS ContactEmail,
-                   contact_phone AS ContactPhone,
-                   created_at AS CreatedAt,
-                   updated_at AS UpdatedAt
-            FROM hotels 
+            SELECT * FROM hotels 
             WHERE {whereClause}
             ORDER BY created_at DESC 
             LIMIT @PageSize OFFSET @Offset";
@@ -236,41 +183,19 @@ public class HotelRepository : IHotelRepository
         
         var hotels = await connection.QueryAsync<Hotel>(dataSql, parameters);
         
+        _logger.LogDebug("Retrieved {Count} hotels for tenant {TenantId} matching search criteria", hotels.Count(), tenantId);
+        
         return (hotels, totalCount);
     }
 
     public async Task<IEnumerable<Hotel>> GetByTenantAsync(string tenantId, CancellationToken cancellationToken = default)
     {
-        using var connection = _connectionFactory.CreateConnection();
-        
-        const string sql = @"
-            SELECT id AS Id,
-                   tenant_id AS TenantId,
-                   name AS Name,
-                   description AS Description,
-                   location AS Location,
-                   address AS Address,
-                   city AS City,
-                   country AS Country,
-                   star_rating AS StarRating,
-                   price_per_night AS PricePerNight,
-                   currency AS Currency,
-                   total_rooms AS TotalRooms,
-                   available_rooms AS AvailableRooms,
-                   status AS Status,
-                   amenities AS Amenities,
-                   images AS Images,
-                   latitude AS Latitude,
-                   longitude AS Longitude,
-                   contact_email AS ContactEmail,
-                   contact_phone AS ContactPhone,
-                   created_at AS CreatedAt,
-                   updated_at AS UpdatedAt
-            FROM hotels
-            WHERE tenant_id = @TenantId AND is_deleted = false
-            ORDER BY created_at DESC";
+        if (string.IsNullOrEmpty(tenantId))
+            throw new ArgumentNullException(nameof(tenantId));
 
-        return await connection.QueryAsync<Hotel>(sql, new { TenantId = tenantId });
+        // Use inherited method from TenantBaseRepository
+        return await GetAllByTenantAsync(Guid.Parse(tenantId), cancellationToken);
     }
-}
 
+    #endregion
+}

@@ -1,31 +1,41 @@
 using Dapper;
 using PaymentService.Domain.Entities;
 using PaymentService.Domain.Repositories;
+using SharedKernel.Data;
 using SharedKernel.Caching;
-using System.Data;
-using Npgsql;
-using Tenancy;
+using Microsoft.Extensions.Logging;
 
 namespace PaymentService.Infrastructure.Repositories;
 
-public class PaymentRepository : IPaymentRepository
+/// <summary>
+/// Repository for payment operations with caching support
+/// Inherits common CRUD operations from TenantBaseRepository
+/// </summary>
+public class PaymentRepository : TenantBaseRepository<Payment, string>, IPaymentRepository
 {
-    private readonly string _connectionString;
-    private readonly ITenantContext _tenantContext;
     private readonly ICacheService _cache;
+    
+    protected override string TableName => "payments";
+    protected override string IdColumnName => "id";
+    protected override string TenantIdColumnName => "tenant_id";
 
-    public PaymentRepository(string connectionString, ITenantContext tenantContext, ICacheService cache)
+    public PaymentRepository(
+        IDapperContext context,
+        ICacheService cache,
+        ILogger<PaymentRepository> logger) 
+        : base(context, logger)
     {
-        _connectionString = connectionString;
-        _tenantContext = tenantContext;
-        _cache = cache;
+        _cache = cache ?? throw new ArgumentNullException(nameof(cache));
     }
 
-    private IDbConnection CreateConnection() => new NpgsqlConnection(_connectionString);
+    #region Overridden Methods with Caching
 
-    public async Task<Payment?> GetByIdAsync(string id, CancellationToken cancellationToken = default)
+    public override async Task<Payment?> GetByIdAsync(string id, Guid tenantId, CancellationToken cancellationToken = default)
     {
-        var cacheKey = $"payment:{_tenantContext.TenantId}:{id}";
+        if (string.IsNullOrEmpty(id))
+            throw new ArgumentNullException(nameof(id));
+
+        var cacheKey = $"payment:{tenantId}:{id}";
         
         return await _cache.GetOrSetAsync(cacheKey, async () =>
         {
@@ -37,24 +47,16 @@ public class PaymentRepository : IPaymentRepository
             return await connection.QueryFirstOrDefaultAsync<Payment>(sql, new 
             { 
                 Id = id, 
-                TenantId = _tenantContext.TenantId 
+                TenantId = tenantId 
             });
         }, TimeSpan.FromMinutes(5), cancellationToken);
     }
 
-    public async Task<IEnumerable<Payment>> GetAllAsync(CancellationToken cancellationToken = default)
+    public override async Task<string> AddAsync(Payment entity, CancellationToken cancellationToken = default)
     {
-        using var connection = CreateConnection();
-        const string sql = @"
-            SELECT * FROM payments 
-            WHERE tenant_id = @TenantId AND is_deleted = false
-            ORDER BY created_at DESC";
+        if (entity == null)
+            throw new ArgumentNullException(nameof(entity));
 
-        return await connection.QueryAsync<Payment>(sql, new { TenantId = _tenantContext.TenantId });
-    }
-
-    public async Task<string> AddAsync(Payment entity, CancellationToken cancellationToken = default)
-    {
         using var connection = CreateConnection();
         const string sql = @"
             INSERT INTO payments (
@@ -75,16 +77,20 @@ public class PaymentRepository : IPaymentRepository
             entity.Currency,
             PaymentMethod = entity.PaymentMethod,
             Status = (int)entity.Status,
-            CustomerId = string.Empty, // Would come from payment request
+            CustomerId = string.Empty,
             entity.IsDeleted,
             entity.CreatedAt
         });
         
+        _logger.LogInformation("Payment {PaymentId} created for booking {BookingId}", entity.Id, entity.BookingId);
         return entity.Id;
     }
 
-    public async Task UpdateAsync(Payment entity, CancellationToken cancellationToken = default)
+    public override async Task<bool> UpdateAsync(Payment entity, CancellationToken cancellationToken = default)
     {
+        if (entity == null)
+            throw new ArgumentNullException(nameof(entity));
+
         using var connection = CreateConnection();
         const string sql = @"
             UPDATE payments 
@@ -95,7 +101,7 @@ public class PaymentRepository : IPaymentRepository
                 updated_at = CURRENT_TIMESTAMP
             WHERE id = @Id AND tenant_id = @TenantId";
 
-        await connection.ExecuteAsync(sql, new
+        var rowsAffected = await connection.ExecuteAsync(sql, new
         {
             entity.Id,
             entity.TenantId,
@@ -105,45 +111,63 @@ public class PaymentRepository : IPaymentRepository
             entity.CompletedAt
         });
         
-        // Invalidate cache
-        await _cache.RemoveAsync($"payment:{entity.TenantId}:{entity.Id}", cancellationToken);
+        if (rowsAffected > 0)
+        {
+            // Invalidate cache
+            await _cache.RemoveAsync($"payment:{entity.TenantId}:{entity.Id}", cancellationToken);
+            _logger.LogInformation("Payment {PaymentId} updated to status {Status}", entity.Id, entity.Status);
+        }
+
+        return rowsAffected > 0;
     }
 
-    public async Task DeleteAsync(string id, CancellationToken cancellationToken = default)
+    public override async Task<bool> DeleteAsync(string id, CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrEmpty(id))
+            throw new ArgumentNullException(nameof(id));
+
         using var connection = CreateConnection();
         const string sql = @"
             UPDATE payments 
             SET is_deleted = true, 
                 deleted_at = CURRENT_TIMESTAMP 
-            WHERE id = @Id AND tenant_id = @TenantId";
+            WHERE id = @Id";
 
-        await connection.ExecuteAsync(sql, new 
-        { 
-            Id = id, 
-            TenantId = _tenantContext.TenantId
-        });
+        var rowsAffected = await connection.ExecuteAsync(sql, new { Id = id });
         
-        await _cache.RemoveAsync($"payment:{_tenantContext.TenantId}:{id}", cancellationToken);
+        if (rowsAffected > 0)
+        {
+            _logger.LogInformation("Payment {PaymentId} deleted (soft delete)", id);
+        }
+
+        return rowsAffected > 0;
     }
+
+    #endregion
+
+    #region Domain-Specific Methods
 
     public async Task<IEnumerable<Payment>> GetByBookingIdAsync(string bookingId, CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrEmpty(bookingId))
+            throw new ArgumentNullException(nameof(bookingId));
+
         using var connection = CreateConnection();
         const string sql = @"
             SELECT * FROM payments 
-            WHERE booking_id = @BookingId AND tenant_id = @TenantId AND is_deleted = false
+            WHERE booking_id = @BookingId AND is_deleted = false
             ORDER BY created_at DESC";
 
-        return await connection.QueryAsync<Payment>(sql, new 
-        { 
-            BookingId = bookingId, 
-            TenantId = _tenantContext.TenantId 
-        });
+        return await connection.QueryAsync<Payment>(sql, new { BookingId = bookingId });
     }
 
     public async Task<decimal> CalculateRefundAmountAsync(string paymentId, int daysBeforeTravel, CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrEmpty(paymentId))
+            throw new ArgumentNullException(nameof(paymentId));
+        if (daysBeforeTravel < 0)
+            throw new ArgumentException("Days before travel cannot be negative", nameof(daysBeforeTravel));
+
         using var connection = CreateConnection();
         
         // Use database function for refund calculation
@@ -155,11 +179,23 @@ public class PaymentRepository : IPaymentRepository
             DaysBeforeTravel = daysBeforeTravel 
         });
         
+        _logger.LogDebug("Calculated refund amount {Amount} for payment {PaymentId} with {Days} days before travel", 
+            refundAmount, paymentId, daysBeforeTravel);
+        
         return refundAmount;
     }
 
-    public async Task<IEnumerable<Payment>> GetByTenantAndDateAsync(string tenantId, DateTime startDate, DateTime endDate, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<Payment>> GetByTenantAndDateAsync(
+        string tenantId, 
+        DateTime startDate, 
+        DateTime endDate, 
+        CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrEmpty(tenantId))
+            throw new ArgumentNullException(nameof(tenantId));
+        if (startDate > endDate)
+            throw new ArgumentException("Start date must be before end date");
+
         using var connection = CreateConnection();
         const string sql = @"
             SELECT * FROM payments 
@@ -176,5 +212,6 @@ public class PaymentRepository : IPaymentRepository
             EndDate = endDate
         });
     }
-}
 
+    #endregion
+}

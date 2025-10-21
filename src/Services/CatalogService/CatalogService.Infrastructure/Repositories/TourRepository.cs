@@ -113,7 +113,7 @@ public class TourRepository : ITourRepository
         return entity.Id;
     }
 
-    public async Task UpdateAsync(Tour entity, CancellationToken cancellationToken = default)
+    public async Task<bool> UpdateAsync(Tour entity, CancellationToken cancellationToken = default)
     {
         using var connection = _connectionFactory.CreateConnection();
         
@@ -129,10 +129,11 @@ public class TourRepository : ITourRepository
                 updated_at = @UpdatedAt
             WHERE id = @Id AND tenant_id = @TenantId";
         
-        await connection.ExecuteAsync(sql, entity);
+        var rowsAffected = await connection.ExecuteAsync(sql, entity);
+        return rowsAffected > 0;
     }
 
-    public async Task DeleteAsync(string id, CancellationToken cancellationToken = default)
+    public async Task<bool> DeleteAsync(string id, CancellationToken cancellationToken = default)
     {
         using var connection = _connectionFactory.CreateConnection();
         
@@ -142,12 +143,14 @@ public class TourRepository : ITourRepository
                 deleted_at = @DeletedAt
             WHERE id = @Id AND tenant_id = @TenantId";
 
-        await connection.ExecuteAsync(sql, new 
+        var rowsAffected = await connection.ExecuteAsync(sql, new 
         { 
             Id = id, 
             TenantId = _tenantContext.TenantId, 
             DeletedAt = DateTime.UtcNow 
         });
+
+        return rowsAffected > 0;
     }
 
     public async Task<(IEnumerable<Tour> Tours, int TotalCount)> SearchToursAsync(

@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using PaymentService.Domain.Repositories;
 using PaymentService.Infrastructure.Repositories;
+using SharedKernel.Data;
 using DbUp;
 using System.Reflection;
 
@@ -10,12 +11,11 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, string connectionString)
     {
-        services.AddScoped<IPaymentRepository>(sp => 
-        {
-            var tenantContext = sp.GetRequiredService<Tenancy.ITenantContext>();
-            var cache = sp.GetRequiredService<SharedKernel.Caching.ICacheService>();
-            return new PaymentRepository(connectionString, tenantContext, cache);
-        });
+        // Register DapperContext (IMPROVED: Single source of truth for connections)
+        services.AddSingleton<IDapperContext>(sp => new DapperContext(connectionString));
+
+        // Register repositories (IMPROVED: Using IDapperContext)
+        services.AddScoped<IPaymentRepository, PaymentRepository>();
         
         return services;
     }
@@ -34,4 +34,3 @@ public static class DependencyInjection
             throw new Exception("Database migration failed", result.Error);
     }
 }
-
