@@ -38,3 +38,45 @@ public record UpdateTenantConfigRequest(
     [property: JsonPropertyName("logoUrl")] string LogoUrl
 );
 
+public record UpdateTenantRequest(
+    [property: JsonPropertyName("name")] string Name,
+    [property: JsonPropertyName("contactEmail")] string ContactEmail,
+    [property: JsonPropertyName("contactPhone")] string ContactPhone,
+    [property: JsonPropertyName("customDomain")] string? CustomDomain
+);
+
+public record UpdateTenantResponse(
+    [property: JsonPropertyName("success")] bool Success,
+    [property: JsonPropertyName("message")] string Message,
+    [property: JsonPropertyName("tenant")] TenantDto Tenant
+);
+
+public record ActivateTenantResponse(
+    [property: JsonPropertyName("success")] bool Success,
+    [property: JsonPropertyName("message")] string Message,
+    [property: JsonPropertyName("tenantId")] string TenantId,
+    [property: JsonPropertyName("status")] string Status
+);
+
+public record TenantStatsResponse(
+    [property: JsonPropertyName("totalTenants")] int TotalTenants,
+    [property: JsonPropertyName("activeTenants")] int ActiveTenants,
+    [property: JsonPropertyName("suspendedTenants")] int SuspendedTenants,
+    [property: JsonPropertyName("inactiveTenants")] int InactiveTenants,
+    [property: JsonPropertyName("tenantsByTier")] Dictionary<string, int> TenantsByTier
+);
+
+public record GetAllTenantsRequest(
+    [property: JsonPropertyName("page")] int Page = 1,
+    [property: JsonPropertyName("pageSize")] int PageSize = 10,
+    [property: JsonPropertyName("status")] string? Status = null
+);
+
+public record PagedTenantsResponse(
+    [property: JsonPropertyName("tenants")] IEnumerable<TenantDto> Tenants,
+    [property: JsonPropertyName("totalCount")] int TotalCount,
+    [property: JsonPropertyName("page")] int Page,
+    [property: JsonPropertyName("pageSize")] int PageSize,
+    [property: JsonPropertyName("totalPages")] int TotalPages
+);
+

@@ -88,6 +88,70 @@ public class TenantRepository : ITenantRepository
         return data.Select(d => d.ToEntity());
     }
 
+    public async Task<(IEnumerable<Tenant> Tenants, int TotalCount)> GetPagedTenantsAsync(
+        int page, 
+        int pageSize, 
+        string? status = null, 
+        CancellationToken cancellationToken = default)
+    {
+        using var connection = CreateConnection();
+        
+        var whereClauses = new List<string>();
+        var parameters = new DynamicParameters();
+        
+        if (!string.IsNullOrEmpty(status))
+        {
+            if (Enum.TryParse<TenantStatus>(status, true, out var statusEnum))
+            {
+                whereClauses.Add("status = @Status");
+                parameters.Add("Status", (int)statusEnum);
+            }
+        }
+        
+        var whereClause = whereClauses.Any() ? $"WHERE {string.Join(" AND ", whereClauses)}" : "";
+        
+        // Get total count
+        var countSql = $"SELECT COUNT(*) FROM tenants {whereClause}";
+        var totalCount = await connection.ExecuteScalarAsync<int>(countSql, parameters);
+        
+        // Get paged data
+        var offset = (page - 1) * pageSize;
+        var dataSql = $@"SELECT * FROM tenants {whereClause} 
+                        ORDER BY created_at DESC 
+                        LIMIT @PageSize OFFSET @Offset";
+        
+        parameters.Add("PageSize", pageSize);
+        parameters.Add("Offset", offset);
+        
+        var data = await connection.QueryAsync<TenantData>(dataSql, parameters);
+        var tenants = data.Select(d => d.ToEntity());
+        
+        return (tenants, totalCount);
+    }
+
+    public async Task<Dictionary<string, int>> GetTenantStatisticsAsync(CancellationToken cancellationToken = default)
+    {
+        using var connection = CreateConnection();
+        
+        var stats = new Dictionary<string, int>();
+        
+        // Total tenants
+        stats["TotalTenants"] = await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM tenants");
+        
+        // By status
+        stats["ActiveTenants"] = await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM tenants WHERE status = 0");
+        stats["SuspendedTenants"] = await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM tenants WHERE status = 1");
+        stats["InactiveTenants"] = await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM tenants WHERE status = 2");
+        
+        // By tier
+        stats["BasicTier"] = await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM tenants WHERE tier = 0");
+        stats["StandardTier"] = await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM tenants WHERE tier = 1");
+        stats["PremiumTier"] = await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM tenants WHERE tier = 2");
+        stats["EnterpriseTier"] = await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM tenants WHERE tier = 3");
+        
+        return stats;
+    }
+
     private class TenantData
     {
         public string Id { get; set; } = string.Empty;
