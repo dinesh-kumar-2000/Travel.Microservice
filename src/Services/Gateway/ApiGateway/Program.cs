@@ -59,22 +59,22 @@ builder.Services.AddHealthChecks();
 
 var app = builder.Build();
 
-// Middleware Pipeline
+// Middleware Pipeline - Order matters!
+app.UseCors(); // CORS must be before everything else
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseHsts(); // HTTP Strict Transport Security
 }
 
-app.UseCors();
-app.UseHttpsRedirection();
+// Health check endpoints (before Ocelot)
+app.MapHealthChecks("/health");
 
-// Authentication & Authorization
+// Authentication & Authorization (Ocelot will use these)
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Health check endpoints
-app.MapHealthChecks("/health");
-
+// Ocelot must be last
 await app.UseOcelot();
 
 app.Run();
