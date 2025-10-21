@@ -156,5 +156,64 @@ public class BookingRepository : IBookingRepository
 
         return await connection.QueryAsync<Booking>(sql, new { CustomerId = customerId, TenantId = tenantId });
     }
+
+    public async Task<(IEnumerable<Booking> Bookings, int TotalCount)> GetPagedBookingsAsync(
+        string tenantId,
+        string? customerId = null,
+        string? status = null,
+        int page = 1,
+        int pageSize = 10,
+        CancellationToken cancellationToken = default)
+    {
+        using var connection = CreateConnection();
+        
+        var whereClauses = new List<string> { "tenant_id = @TenantId", "is_deleted = false" };
+        var parameters = new DynamicParameters();
+        parameters.Add("TenantId", tenantId);
+        
+        if (!string.IsNullOrEmpty(customerId))
+        {
+            whereClauses.Add("customer_id = @CustomerId");
+            parameters.Add("CustomerId", customerId);
+        }
+        
+        if (!string.IsNullOrEmpty(status) && Enum.TryParse<BookingStatus>(status, true, out var statusEnum))
+        {
+            whereClauses.Add("status = @Status");
+            parameters.Add("Status", (int)statusEnum);
+        }
+        
+        var whereClause = string.Join(" AND ", whereClauses);
+        
+        // Get total count
+        var countSql = $"SELECT COUNT(*) FROM bookings WHERE {whereClause}";
+        var totalCount = await connection.ExecuteScalarAsync<int>(countSql, parameters);
+        
+        // Get paged data
+        var offset = (page - 1) * pageSize;
+        var dataSql = $@"
+            SELECT * FROM bookings 
+            WHERE {whereClause}
+            ORDER BY created_at DESC 
+            LIMIT @PageSize OFFSET @Offset";
+        
+        parameters.Add("PageSize", pageSize);
+        parameters.Add("Offset", offset);
+        
+        var bookings = await connection.QueryAsync<Booking>(dataSql, parameters);
+        
+        return (bookings, totalCount);
+    }
+
+    public async Task<Booking?> GetByReferenceAsync(string bookingReference, CancellationToken cancellationToken = default)
+    {
+        using var connection = CreateConnection();
+        const string sql = @"
+            SELECT * FROM bookings 
+            WHERE booking_reference = @BookingReference 
+            AND is_deleted = false";
+
+        return await connection.QueryFirstOrDefaultAsync<Booking>(sql, new { BookingReference = bookingReference });
+    }
 }
 

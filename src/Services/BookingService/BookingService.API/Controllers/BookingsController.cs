@@ -1,4 +1,5 @@
 using BookingService.Application.Commands;
+using BookingService.Application.Queries;
 using BookingService.Contracts.DTOs;
 using Identity.Shared;
 using MediatR;
@@ -34,27 +35,30 @@ public class BookingsController : ControllerBase
     }
 
     /// <summary>
-    /// Get all bookings with pagination
+    /// Get all bookings with pagination and filters
     /// </summary>
     [HttpGet]
     [EnableRateLimiting("fixed")]
-    [ProducesResponseType(typeof(ApiResponse<PagedResult<BookingDto>>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<ApiResponse<PagedResult<BookingDto>>>> GetAll(
-        [FromQuery] int pageNumber = 1,
+    [ProducesResponseType(typeof(PagedBookingsResponse), StatusCodes.Status200OK)]
+    public async Task<ActionResult<PagedBookingsResponse>> GetAll(
+        [FromQuery] string? status = null,
+        [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10)
     {
-        _logger.LogInformation("Getting all bookings for tenant {TenantId}, page {PageNumber}, size {PageSize}",
-            _currentUser.TenantId, pageNumber, pageSize);
+        _logger.LogInformation("Getting all bookings for tenant {TenantId}, status {Status}, page {Page}, size {PageSize}",
+            _currentUser.TenantId, status ?? "All", page, pageSize);
 
-        // For now, return empty results. This should use a query handler in a real implementation
-        var emptyResult = new PagedResult<BookingDto>(
-            Array.Empty<BookingDto>(),
-            0,
-            pageNumber,
+        var query = new GetBookingsQuery(
+            _currentUser.TenantId!,
+            null, // Don't filter by customer for admin view
+            status,
+            page,
             pageSize
         );
 
-        return Ok(ApiResponse<PagedResult<BookingDto>>.SuccessResponse(emptyResult));
+        var result = await _mediator.Send(query);
+
+        return Ok(result);
     }
 
     /// <summary>
@@ -106,16 +110,17 @@ public class BookingsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<BookingDto>> GetById(string id)
     {
-        // This would use a query handler
-        return Ok(new BookingDto(
-            id,
-            "BK20251015001",
-            "package123",
-            DateTime.UtcNow.AddDays(30),
-            2,
-            1000.00m,
-            "Pending"
-        ));
+        _logger.LogInformation("Getting booking {BookingId}", id);
+
+        var query = new GetBookingByIdQuery(id);
+        var result = await _mediator.Send(query);
+
+        if (result == null)
+        {
+            return NotFound(new { message = "Booking not found" });
+        }
+
+        return Ok(result);
     }
 
     /// <summary>
@@ -123,13 +128,95 @@ public class BookingsController : ControllerBase
     /// </summary>
     [HttpGet("my-bookings")]
     [EnableRateLimiting("fixed")]
-    [ProducesResponseType(typeof(IEnumerable<BookingDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IEnumerable<BookingDto>>> GetMyBookings()
+    [ProducesResponseType(typeof(PagedBookingsResponse), StatusCodes.Status200OK)]
+    public async Task<ActionResult<PagedBookingsResponse>> GetMyBookings(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10)
     {
         _logger.LogInformation("Getting bookings for customer {CustomerId}", _currentUser.UserId);
 
-        // This would use a query handler
-        return Ok(Array.Empty<BookingDto>());
+        var query = new GetBookingsQuery(
+            _currentUser.TenantId!,
+            _currentUser.UserId, // Filter by current user
+            null,
+            page,
+            pageSize
+        );
+
+        var result = await _mediator.Send(query);
+
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Confirm a booking (after successful payment)
+    /// </summary>
+    [HttpPost("{id}/confirm")]
+    [EnableRateLimiting("fixed")]
+    [ProducesResponseType(typeof(ConfirmBookingResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ConfirmBookingResponse>> Confirm(
+        string id,
+        [FromBody] ConfirmBookingRequest request)
+    {
+        _logger.LogInformation("Confirming booking {BookingId} with payment {PaymentId}",
+            id, request.PaymentId);
+
+        var command = new ConfirmBookingCommand(id, request.PaymentId);
+        var result = await _mediator.Send(command);
+
+        // Audit log
+        await _auditService.LogAsync(new AuditEntry
+        {
+            TenantId = _currentUser.TenantId!,
+            UserId = _currentUser.UserId!,
+            Action = "Confirm",
+            EntityType = "Booking",
+            EntityId = id,
+            NewValues = System.Text.Json.JsonSerializer.Serialize(new { PaymentId = request.PaymentId, Status = "Confirmed" }),
+            IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            UserAgent = HttpContext.Request.Headers["User-Agent"].ToString()
+        });
+
+        _logger.LogInformation("Booking {BookingId} confirmed successfully", id);
+
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Cancel a booking
+    /// </summary>
+    [HttpPost("{id}/cancel")]
+    [EnableRateLimiting("fixed")]
+    [ProducesResponseType(typeof(CancelBookingResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<CancelBookingResponse>> Cancel(
+        string id,
+        [FromBody] CancelBookingRequest? request = null)
+    {
+        _logger.LogInformation("Cancelling booking {BookingId}", id);
+
+        var command = new CancelBookingCommand(id, request?.Reason);
+        var result = await _mediator.Send(command);
+
+        // Audit log
+        await _auditService.LogAsync(new AuditEntry
+        {
+            TenantId = _currentUser.TenantId!,
+            UserId = _currentUser.UserId!,
+            Action = "Cancel",
+            EntityType = "Booking",
+            EntityId = id,
+            NewValues = System.Text.Json.JsonSerializer.Serialize(new { Status = "Cancelled", Reason = request?.Reason }),
+            IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            UserAgent = HttpContext.Request.Headers["User-Agent"].ToString()
+        });
+
+        _logger.LogInformation("Booking {BookingId} cancelled successfully", id);
+
+        return Ok(result);
     }
 }
 
