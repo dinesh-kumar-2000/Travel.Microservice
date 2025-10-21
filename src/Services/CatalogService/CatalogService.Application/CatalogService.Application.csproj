@@ -11,6 +11,7 @@
     <ProjectReference Include="..\CatalogService.Domain\CatalogService.Domain.csproj" />
     <ProjectReference Include="..\CatalogService.Contracts\CatalogService.Contracts.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\SharedKernel\SharedKernel.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Tenancy\Tenancy.csproj" />
   </ItemGroup>
 </Project>
 

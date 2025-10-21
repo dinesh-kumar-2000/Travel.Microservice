@@ -1,7 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using MediatR;
 using CatalogService.Contracts.DTOs;
+using CatalogService.Application.Commands.Hotel;
+using CatalogService.Application.Queries.Hotel;
 using SharedKernel.Models;
 using Identity.Shared;
 using Tenancy;
@@ -17,15 +20,18 @@ namespace CatalogService.API.Controllers;
 [Authorize(Roles = "TenantAdmin,SuperAdmin")]
 public class HotelsController : ControllerBase
 {
+    private readonly IMediator _mediator;
     private readonly ICurrentUserService _currentUser;
     private readonly ITenantContext _tenantContext;
     private readonly ILogger<HotelsController> _logger;
 
     public HotelsController(
+        IMediator mediator,
         ICurrentUserService currentUser,
         ITenantContext tenantContext,
         ILogger<HotelsController> logger)
     {
+        _mediator = mediator;
         _currentUser = currentUser;
         _tenantContext = tenantContext;
         _logger = logger;
@@ -84,8 +90,10 @@ public class HotelsController : ControllerBase
     {
         _logger.LogInformation("Getting hotel {HotelId}", id);
 
-        // TODO: Implement query/handler pattern
-        return NotFound(new { message = "Hotel not found" });
+        var query = new GetHotelByIdQuery(id);
+        var result = await _mediator.Send(query);
+
+        return result == null ? NotFound(new { message = "Hotel not found" }) : Ok(result);
     }
 
     /// <summary>
@@ -100,16 +108,20 @@ public class HotelsController : ControllerBase
         _logger.LogInformation("Searching hotels - City: {City}, Country: {Country}", 
             request.City, request.Country);
 
-        // TODO: Implement query/handler pattern
-        var response = new PagedHotelsResponse(
-            Hotels: new List<HotelDto>(),
-            TotalCount: 0,
-            Page: request.Page,
-            PageSize: request.PageSize,
-            TotalPages: 0
+        var query = new SearchHotelsQuery(
+            request.City,
+            request.Country,
+            request.MinPrice,
+            request.MaxPrice,
+            request.StarRating,
+            request.Amenities,
+            request.Page,
+            request.PageSize
         );
 
-        return Ok(response);
+        var result = await _mediator.Send(query);
+
+        return Ok(result);
     }
 
     /// <summary>
