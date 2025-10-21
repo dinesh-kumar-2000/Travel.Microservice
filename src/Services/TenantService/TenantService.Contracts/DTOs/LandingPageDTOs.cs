@@ -84,10 +84,10 @@ public record SeoConfigDto(
     [property: JsonPropertyName("description")] string? Description,
     [property: JsonPropertyName("keywords")] List<string>? Keywords,
     [property: JsonPropertyName("canonicalUrl")] string? CanonicalUrl,
-    [property: JsonPropertyName("openGraph")] OpenGraphDto? OpenGraph
+    [property: JsonPropertyName("openGraph")] LandingPageOpenGraphDto? OpenGraph
 );
 
-public record OpenGraphDto(
+public record LandingPageOpenGraphDto(
     [property: JsonPropertyName("ogTitle")] string? OgTitle,
     [property: JsonPropertyName("ogDescription")] string? OgDescription,
     [property: JsonPropertyName("ogImage")] string? OgImage,

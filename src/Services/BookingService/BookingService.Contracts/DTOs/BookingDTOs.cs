@@ -44,7 +44,7 @@ public record ConfirmBookingResponse(
     [property: JsonPropertyName("status")] string Status
 );
 
-public record CancelBookingRequest(
+public record BookingCancelRequest(
     [property: JsonPropertyName("reason")] string? Reason = null
 );
 

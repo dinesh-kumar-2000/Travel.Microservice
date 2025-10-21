@@ -194,11 +194,11 @@ public class BookingsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<CancelBookingResponse>> Cancel(
         string id,
-        [FromBody] CancelBookingRequest? request = null)
+        [FromBody] BookingCancelRequest? request = null)
     {
         _logger.LogInformation("Cancelling booking {BookingId}", id);
 
-        var command = new CancelBookingCommand(id, request?.Reason);
+        var command = new UserCancelBookingCommand(id, request?.Reason);
         var result = await _mediator.Send(command);
 
         // Audit log

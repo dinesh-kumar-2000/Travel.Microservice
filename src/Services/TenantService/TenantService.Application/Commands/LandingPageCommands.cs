@@ -221,7 +221,7 @@ public class CreateLandingPageCommandHandler : IRequestHandler<CreateLandingPage
                 Description: page.Seo.Description,
                 Keywords: page.Seo.Keywords,
                 CanonicalUrl: page.Seo.CanonicalUrl,
-                OpenGraph: page.Seo.OpenGraph != null ? new OpenGraphDto(
+                OpenGraph: page.Seo.OpenGraph != null ? new LandingPageOpenGraphDto(
                     OgTitle: page.Seo.OpenGraph.OgTitle,
                     OgDescription: page.Seo.OpenGraph.OgDescription,
                     OgImage: page.Seo.OpenGraph.OgImage,

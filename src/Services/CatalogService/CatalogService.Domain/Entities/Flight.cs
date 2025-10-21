@@ -1,107 +1,80 @@
-using SharedKernel.Models;
-
 namespace CatalogService.Domain.Entities;
 
-public class Flight : TenantEntity<string>
+public class Flight
 {
-    public string FlightNumber { get; private set; } = string.Empty;
-    public string Airline { get; private set; } = string.Empty;
-    public string DepartureAirport { get; private set; } = string.Empty;
-    public string ArrivalAirport { get; private set; } = string.Empty;
-    public string DepartureCity { get; private set; } = string.Empty;
-    public string ArrivalCity { get; private set; } = string.Empty;
-    public string DepartureCountry { get; private set; } = string.Empty;
-    public string ArrivalCountry { get; private set; } = string.Empty;
-    public DateTime DepartureTime { get; private set; }
-    public DateTime ArrivalTime { get; private set; }
-    public decimal Price { get; private set; }
-    public string Currency { get; private set; } = "USD";
-    public int TotalSeats { get; private set; }
-    public int AvailableSeats { get; private set; }
-    public FlightClass FlightClass { get; private set; } = FlightClass.Economy;
-    public FlightStatus Status { get; private set; } = FlightStatus.Scheduled;
-    public string? AircraftType { get; private set; }
-    public int? BaggageAllowanceKg { get; private set; }
-    public bool HasMeal { get; private set; }
-    public bool IsRefundable { get; private set; }
+    public Guid Id { get; set; }
+    public Guid TenantId { get; set; }
+    public string FlightNumber { get; set; } = string.Empty;
+    public string Airline { get; set; } = string.Empty;
+    public string AircraftType { get; set; } = string.Empty;
+    public string Origin { get; set; } = string.Empty;
+    public string Destination { get; set; } = string.Empty;
+    public DateTime DepartureTime { get; set; }
+    public DateTime ArrivalTime { get; set; }
+    public string Duration { get; set; } = string.Empty;
+    public string Status { get; set; } = "active";
 
-    private Flight() { }
+    // Pricing
+    public decimal EconomyPrice { get; set; }
+    public decimal BusinessPrice { get; set; }
+    public decimal FirstClassPrice { get; set; }
 
-    public static Flight Create(string id, string tenantId, string flightNumber, string airline,
-        string departureAirport, string arrivalAirport, string departureCity, string arrivalCity,
-        string departureCountry, string arrivalCountry, DateTime departureTime, DateTime arrivalTime,
-        decimal price, int totalSeats, FlightClass flightClass)
+    // Seats
+    public int EconomySeats { get; set; }
+    public int BusinessSeats { get; set; }
+    public int FirstClassSeats { get; set; }
+    public int EconomyAvailable { get; set; }
+    public int BusinessAvailable { get; set; }
+    public int FirstClassAvailable { get; set; }
+
+    // Amenities
+    public string? BaggageAllowance { get; set; }
+    public bool Meals { get; set; }
+    public bool Wifi { get; set; }
+    public string? Layovers { get; set; }
+    public string? Notes { get; set; }
+
+    // Metadata
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+    public Guid? CreatedBy { get; set; }
+
+    public void UpdateAvailableSeats(string seatClass, int count)
     {
-        return new Flight
+        switch (seatClass.ToLower())
         {
-            Id = id,
-            TenantId = tenantId,
-            FlightNumber = flightNumber,
-            Airline = airline,
-            DepartureAirport = departureAirport,
-            ArrivalAirport = arrivalAirport,
-            DepartureCity = departureCity,
-            ArrivalCity = arrivalCity,
-            DepartureCountry = departureCountry,
-            ArrivalCountry = arrivalCountry,
-            DepartureTime = departureTime,
-            ArrivalTime = arrivalTime,
-            Price = price,
-            TotalSeats = totalSeats,
-            AvailableSeats = totalSeats,
-            FlightClass = flightClass,
-            CreatedAt = DateTime.UtcNow
+            case "economy":
+                EconomyAvailable = Math.Max(0, EconomyAvailable - count);
+                break;
+            case "business":
+                BusinessAvailable = Math.Max(0, BusinessAvailable - count);
+                break;
+            case "first_class":
+            case "firstclass":
+                FirstClassAvailable = Math.Max(0, FirstClassAvailable - count);
+                break;
+        }
+    }
+
+    public bool HasAvailableSeats(string seatClass, int requiredCount)
+    {
+        return seatClass.ToLower() switch
+        {
+            "economy" => EconomyAvailable >= requiredCount,
+            "business" => BusinessAvailable >= requiredCount,
+            "first_class" or "firstclass" => FirstClassAvailable >= requiredCount,
+            _ => false
         };
     }
 
-    public void UpdatePrice(decimal newPrice)
+    public decimal GetPrice(string seatClass)
     {
-        Price = newPrice;
-        UpdatedAt = DateTime.UtcNow;
-    }
-
-    public bool ReserveSeats(int quantity)
-    {
-        if (AvailableSeats < quantity) return false;
-        AvailableSeats -= quantity;
-        UpdatedAt = DateTime.UtcNow;
-        return true;
-    }
-
-    public void ReleaseSeats(int quantity)
-    {
-        AvailableSeats = Math.Min(AvailableSeats + quantity, TotalSeats);
-        UpdatedAt = DateTime.UtcNow;
-    }
-
-    public void UpdateStatus(FlightStatus newStatus)
-    {
-        Status = newStatus;
-        UpdatedAt = DateTime.UtcNow;
-    }
-
-    public void Cancel()
-    {
-        Status = FlightStatus.Cancelled;
-        UpdatedAt = DateTime.UtcNow;
+        return seatClass.ToLower() switch
+        {
+            "economy" => EconomyPrice,
+            "business" => BusinessPrice,
+            "first_class" or "firstclass" => FirstClassPrice,
+            _ => 0
+        };
     }
 }
-
-public enum FlightClass
-{
-    Economy,
-    PremiumEconomy,
-    Business,
-    FirstClass
-}
-
-public enum FlightStatus
-{
-    Scheduled,
-    Boarding,
-    Departed,
-    Arrived,
-    Delayed,
-    Cancelled
-}
-

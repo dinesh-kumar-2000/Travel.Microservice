@@ -3,7 +3,7 @@ using BookingService.Contracts.DTOs;
 
 namespace BookingService.Application.Commands;
 
-public record CancelBookingCommand(
+public record UserCancelBookingCommand(
     string BookingId,
     string? Reason = null
 ) : IRequest<CancelBookingResponse>;

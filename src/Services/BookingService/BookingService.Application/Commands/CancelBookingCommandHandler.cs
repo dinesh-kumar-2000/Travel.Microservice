@@ -6,7 +6,7 @@ using SharedKernel.Exceptions;
 
 namespace BookingService.Application.Commands;
 
-public class CancelBookingCommandHandler : IRequestHandler<CancelBookingCommand, CancelBookingResponse>
+public class CancelBookingCommandHandler : IRequestHandler<UserCancelBookingCommand, CancelBookingResponse>
 {
     private readonly IBookingRepository _repository;
     private readonly ILogger<CancelBookingCommandHandler> _logger;
@@ -19,7 +19,7 @@ public class CancelBookingCommandHandler : IRequestHandler<CancelBookingCommand,
         _logger = logger;
     }
 
-    public async Task<CancelBookingResponse> Handle(CancelBookingCommand request, CancellationToken cancellationToken)
+    public async Task<CancelBookingResponse> Handle(UserCancelBookingCommand request, CancellationToken cancellationToken)
     {
         _logger.LogInformation("Cancelling booking {BookingId} with reason: {Reason}", 
             request.BookingId, request.Reason ?? "No reason provided");

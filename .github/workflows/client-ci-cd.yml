@@ -1,0 +1,184 @@
+name: Client CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - "client/**"
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "client/**"
+
+jobs:
+  # Lint and Test
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+          cache: "npm"
+          cache-dependency-path: client/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./client
+        run: npm ci
+
+      - name: Run ESLint
+        working-directory: ./client
+        run: npm run lint || true
+
+      - name: Run TypeScript check
+        working-directory: ./client
+        run: npx tsc --noEmit
+
+      - name: Run tests
+        working-directory: ./client
+        run: npm test -- --coverage --watchAll=false
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./client/coverage/lcov.info
+          flags: client
+          name: client-coverage
+
+  # Build
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+          cache: "npm"
+          cache-dependency-path: client/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./client
+        run: npm ci
+
+      - name: Build application
+        working-directory: ./client
+        run: npm run build
+        env:
+          REACT_APP_API_URL: ${{ secrets.REACT_APP_API_URL }}
+          REACT_APP_WS_URL: ${{ secrets.REACT_APP_WS_URL }}
+          REACT_APP_GA_ID: ${{ secrets.REACT_APP_GA_ID }}
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: build
+          path: client/dist
+
+  # Security Scan
+  security:
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Run security audit
+        working-directory: ./client
+        run: npm audit --production || true
+
+      - name: Run Snyk security scan
+        uses: snyk/actions/node@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high
+
+  # Docker Build and Push
+  docker:
+    needs: [build, security]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./client
+          file: ./client/Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/travelsphere-client:latest
+            ${{ secrets.DOCKER_USERNAME }}/travelsphere-client:${{ github.sha }}
+          cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/travelsphere-client:buildcache
+          cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/travelsphere-client:buildcache,mode=max
+          build-args: |
+            REACT_APP_API_URL=${{ secrets.REACT_APP_API_URL }}
+            REACT_APP_WS_URL=${{ secrets.REACT_APP_WS_URL }}
+            REACT_APP_GA_ID=${{ secrets.REACT_APP_GA_ID }}
+
+  # Deploy to Production
+  deploy:
+    needs: docker
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Deploy to Kubernetes
+        uses: azure/k8s-deploy@v4
+        with:
+          manifests: |
+            k8s/client-deployment.yaml
+            k8s/client-service.yaml
+          images: |
+            ${{ secrets.DOCKER_USERNAME }}/travelsphere-client:${{ github.sha }}
+          kubectl-version: "latest"
+
+      - name: Verify deployment
+        run: |
+          kubectl rollout status deployment/travelsphere-client -n production
+
+  # Lighthouse Performance Check
+  lighthouse:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Wait for deployment
+        run: sleep 30
+
+      - name: Run Lighthouse CI
+        uses: treosh/lighthouse-ci-action@v9
+        with:
+          urls: |
+            https://staging.travelsphere.com
+          uploadArtifacts: true
+          temporaryPublicStorage: true

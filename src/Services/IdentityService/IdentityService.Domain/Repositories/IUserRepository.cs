@@ -3,7 +3,7 @@ using SharedKernel.Interfaces;
 
 namespace IdentityService.Domain.Repositories;
 
-public interface IUserRepository : IRepository<User, string>
+public partial interface IUserRepository : IRepository<User, string>
 {
     Task<User?> GetByEmailAsync(string email, string tenantId, CancellationToken cancellationToken = default);
     Task<IEnumerable<string>> GetUserRolesAsync(string userId, CancellationToken cancellationToken = default);

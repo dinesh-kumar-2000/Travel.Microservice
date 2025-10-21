@@ -7,7 +7,7 @@ using Tenancy;
 
 namespace IdentityService.Infrastructure.Repositories;
 
-public class UserRepository : IUserRepository
+public partial class UserRepository : IUserRepository
 {
     private readonly IDbConnectionFactory _connectionFactory;
     private readonly ITenantContext _tenantContext;
