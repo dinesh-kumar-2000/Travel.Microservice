@@ -7,6 +7,7 @@ using SharedKernel.Caching;
 using SharedKernel.Middleware;
 using SharedKernel.RateLimiting;
 using SharedKernel.Versioning;
+using Tenancy;
 using TenantService.Application;
 using TenantService.Infrastructure;
 
@@ -83,6 +84,9 @@ builder.Services.AddApiVersioningConfiguration();
 // Rate Limiting
 builder.Services.AddTenantRateLimiting();
 
+// Multi-Tenancy Support
+builder.Services.AddMultiTenancy();
+
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(connectionString);
 builder.Services.AddEventBus(rabbitMqHost, "guest", "guest");
@@ -130,6 +134,7 @@ else
 
 // Middleware
 app.UseCors();  // Enable CORS
+app.UseMultiTenancy();  // Enable Multi-Tenancy
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
 

@@ -8,6 +8,7 @@ using SharedKernel.Versioning;
 using SharedKernel.SignalR;
 using EventBus.Extensions;
 using Identity.Shared;
+using Tenancy;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -57,6 +58,9 @@ builder.Services.AddSingleton<ISignalRNotificationService, SignalRNotificationSe
 
 builder.Services.AddApiVersioningConfiguration();
 
+// Multi-Tenancy Support
+builder.Services.AddMultiTenancy();
+
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(connectionString);
 builder.Services.AddEventBus(rabbitMqHost, "guest", "guest");
@@ -104,6 +108,7 @@ else
 
 // Middleware pipeline
 app.UseCors();  // Enable CORS for SignalR
+app.UseMultiTenancy();  // Enable Multi-Tenancy
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseMiddleware<GlobalExceptionHandlingMiddleware>();  // Global exception handling
 
