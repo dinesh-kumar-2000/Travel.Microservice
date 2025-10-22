@@ -8,6 +8,22 @@ namespace SharedKernel.RateLimiting;
 
 public static class RateLimitingExtensions
 {
+    /// <summary>
+    /// Creates standard fixed window rate limiter options
+    /// </summary>
+    private static FixedWindowRateLimiterOptions CreateFixedWindowOptions(
+        int permitLimit, 
+        int queueLimit = 5)
+    {
+        return new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = permitLimit,
+            Window = TimeSpan.FromMinutes(1),
+            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+            QueueLimit = queueLimit
+        };
+    }
+
     public static IServiceCollection AddTenantRateLimiting(this IServiceCollection services)
     {
         services.AddRateLimiter(options =>
@@ -15,10 +31,11 @@ public static class RateLimitingExtensions
             // Add named "fixed" policy
             options.AddFixedWindowLimiter("fixed", opt =>
             {
-                opt.PermitLimit = 100;
-                opt.Window = TimeSpan.FromMinutes(1);
-                opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-                opt.QueueLimit = 5;
+                var standardOptions = CreateFixedWindowOptions(100);
+                opt.PermitLimit = standardOptions.PermitLimit;
+                opt.Window = standardOptions.Window;
+                opt.QueueProcessingOrder = standardOptions.QueueProcessingOrder;
+                opt.QueueLimit = standardOptions.QueueLimit;
             });
 
             // Global rate limit
@@ -28,24 +45,14 @@ public static class RateLimitingExtensions
 
                 if (string.IsNullOrEmpty(tenantId))
                 {
-                    return RateLimitPartition.GetFixedWindowLimiter("anonymous", _ =>
-                        new FixedWindowRateLimiterOptions
-                        {
-                            PermitLimit = 10,
-                            Window = TimeSpan.FromMinutes(1),
-                            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                            QueueLimit = 0
-                        });
+                    return RateLimitPartition.GetFixedWindowLimiter(
+                        "anonymous", 
+                        _ => CreateFixedWindowOptions(permitLimit: 10, queueLimit: 0));
                 }
 
-                return RateLimitPartition.GetFixedWindowLimiter(tenantId, _ =>
-                    new FixedWindowRateLimiterOptions
-                    {
-                        PermitLimit = 100,
-                        Window = TimeSpan.FromMinutes(1),
-                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                        QueueLimit = 5
-                    });
+                return RateLimitPartition.GetFixedWindowLimiter(
+                    tenantId, 
+                    _ => CreateFixedWindowOptions(permitLimit: 100, queueLimit: 5));
             });
 
             options.RejectionStatusCode = 429;

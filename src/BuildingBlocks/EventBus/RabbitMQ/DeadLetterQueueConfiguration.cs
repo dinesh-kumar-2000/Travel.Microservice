@@ -1,28 +1,48 @@
 using MassTransit;
+using SharedKernel.Constants;
 
 namespace EventBus.RabbitMQ;
 
 public static class DeadLetterQueueConfiguration
 {
     /// <summary>
-    /// Configure dead letter queue for failed messages
+    /// Standard retry intervals for delayed redelivery
+    /// </summary>
+    private static readonly TimeSpan[] DelayedRetryIntervals = 
+    {
+        TimeSpan.FromMinutes(5),   // First retry after 5 minutes
+        TimeSpan.FromMinutes(15),  // Second retry after 15 minutes
+        TimeSpan.FromMinutes(30)   // Third retry after 30 minutes
+    };
+
+    /// <summary>
+    /// Configure dead letter queue for failed messages with retry and delayed redelivery
     /// </summary>
     public static void ConfigureDeadLetterQueue(this IRabbitMqBusFactoryConfigurator cfg)
     {
+        ConfigureRetryPolicy(cfg);
+        ConfigureDelayedRedelivery(cfg);
+    }
+
+    /// <summary>
+    /// Configure immediate retry policy
+    /// </summary>
+    public static void ConfigureRetryPolicy(this IRabbitMqBusFactoryConfigurator cfg)
+    {
         cfg.UseMessageRetry(r =>
         {
-            r.Interval(3, TimeSpan.FromSeconds(5));  // Retry 3 times with 5s interval
+            r.Interval(ApplicationConstants.Events.DefaultRetryCount, 
+                TimeSpan.FromSeconds(ApplicationConstants.Events.DefaultRetryDelaySeconds));
             r.Handle<Exception>();  // Retry all exceptions
         });
+    }
 
-        cfg.UseDelayedRedelivery(r =>
-        {
-            r.Intervals(
-                TimeSpan.FromMinutes(5),   // First retry after 5 minutes
-                TimeSpan.FromMinutes(15),  // Second retry after 15 minutes
-                TimeSpan.FromMinutes(30)   // Third retry after 30 minutes
-            );
-        });
+    /// <summary>
+    /// Configure delayed redelivery policy
+    /// </summary>
+    public static void ConfigureDelayedRedelivery(this IRabbitMqBusFactoryConfigurator cfg)
+    {
+        cfg.UseDelayedRedelivery(r => r.Intervals(DelayedRetryIntervals));
     }
 
     /// <summary>
@@ -33,13 +53,13 @@ public static class DeadLetterQueueConfiguration
         string queueName)
     {
         // Configure message TTL (24 hours)
-        endpoint.SetQueueArgument("x-message-ttl", 86400000);
+        endpoint.SetQueueArgument("x-message-ttl", ApplicationConstants.Queue.MessageTtlMilliseconds);
 
         // Configure dead letter exchange
         endpoint.SetQueueArgument("x-dead-letter-exchange", $"{queueName}_error");
         
         // Enable lazy queue mode for better performance
-        endpoint.SetQueueArgument("x-queue-mode", "lazy");
+        endpoint.SetQueueArgument("x-queue-mode", ApplicationConstants.Queue.QueueMode);
     }
 }
 

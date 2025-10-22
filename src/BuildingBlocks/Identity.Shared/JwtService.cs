@@ -1,4 +1,6 @@
 using Microsoft.IdentityModel.Tokens;
+using SharedKernel.Constants;
+using SharedKernel.Utilities;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -14,10 +16,14 @@ public interface IJwtService
 public class JwtService : IJwtService
 {
     private readonly JwtSettings _settings;
+    private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly IIdGenerator _idGenerator;
 
-    public JwtService(JwtSettings settings)
+    public JwtService(JwtSettings settings, IDateTimeProvider dateTimeProvider, IIdGenerator idGenerator)
     {
         _settings = settings;
+        _dateTimeProvider = dateTimeProvider;
+        _idGenerator = idGenerator;
     }
 
     public string GenerateToken(string userId, string email, string tenantId, IEnumerable<string> roles)
@@ -26,8 +32,8 @@ public class JwtService : IJwtService
         {
             new(ClaimTypes.NameIdentifier, userId),
             new(ClaimTypes.Email, email),
-            new("tenant_id", tenantId),
-            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            new(ApplicationConstants.Claims.TenantId, tenantId),
+            new(JwtRegisteredClaimNames.Jti, _idGenerator.Generate())
         };
 
         claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
@@ -39,7 +45,7 @@ public class JwtService : IJwtService
             issuer: _settings.Issuer,
             audience: _settings.Audience,
             claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(_settings.ExpiryMinutes),
+            expires: _dateTimeProvider.UtcNow.AddMinutes(_settings.ExpiryMinutes),
             signingCredentials: credentials
         );
 
@@ -51,20 +57,7 @@ public class JwtService : IJwtService
         try
         {
             var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.UTF8.GetBytes(_settings.SecretKey);
-
-            var validationParameters = new TokenValidationParameters
-            {
-                ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey(key),
-                ValidateIssuer = true,
-                ValidIssuer = _settings.Issuer,
-                ValidateAudience = true,
-                ValidAudience = _settings.Audience,
-                ValidateLifetime = true,
-                ClockSkew = TimeSpan.Zero
-            };
-
+            var validationParameters = TokenValidationParametersFactory.Create(_settings);
             return tokenHandler.ValidateToken(token, validationParameters, out _);
         }
         catch

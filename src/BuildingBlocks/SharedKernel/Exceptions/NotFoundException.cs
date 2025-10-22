@@ -1,6 +1,6 @@
 namespace SharedKernel.Exceptions;
 
-public class NotFoundException : Exception
+public class NotFoundException : BaseApplicationException
 {
     public NotFoundException(string entityName, object key)
         : base($"Entity '{entityName}' with key '{key}' was not found.")

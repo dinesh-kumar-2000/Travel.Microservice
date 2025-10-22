@@ -24,28 +24,7 @@ public static class MassTransitExtensions
                     h.Password(password);
                 });
 
-                // Configure retry policy
-                cfg.UseMessageRetry(r =>
-                {
-                    r.Intervals(
-                        TimeSpan.FromSeconds(1),
-                        TimeSpan.FromSeconds(5),
-                        TimeSpan.FromSeconds(10)
-                    );
-                    r.Handle<Exception>();
-                });
-
-                // Configure delayed redelivery
-                cfg.UseDelayedRedelivery(r =>
-                {
-                    r.Intervals(
-                        TimeSpan.FromMinutes(5),
-                        TimeSpan.FromMinutes(15),
-                        TimeSpan.FromMinutes(30)
-                    );
-                });
-
-                // Configure dead letter queue
+                // Configure retry policy and dead letter queue
                 DeadLetterQueueConfiguration.ConfigureDeadLetterQueue(cfg);
 
                 configure?.Invoke(context, cfg);

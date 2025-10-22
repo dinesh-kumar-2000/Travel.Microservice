@@ -1,14 +1,16 @@
+using SharedKernel.Data;
+
 namespace SharedKernel.Interfaces;
 
 /// <summary>
-/// Legacy repository interface - Consider using IBaseRepository from SharedKernel.Data instead
+/// Legacy repository interface - now inherits from IBaseRepository for consistency
+/// Consider using IBaseRepository from SharedKernel.Data directly for new code
 /// </summary>
-public interface IRepository<TEntity, TId> where TEntity : IEntity<TId>
+[Obsolete("Use IBaseRepository from SharedKernel.Data instead. This interface is kept for backward compatibility and will be removed in a future version.")]
+public interface IRepository<TEntity, TId> : IBaseRepository<TEntity, TId> 
+    where TEntity : class, IEntity<TId>
 {
-    Task<TEntity?> GetByIdAsync(TId id, CancellationToken cancellationToken = default);
-    Task<IEnumerable<TEntity>> GetAllAsync(CancellationToken cancellationToken = default);
-    Task<TId> AddAsync(TEntity entity, CancellationToken cancellationToken = default);
-    Task<bool> UpdateAsync(TEntity entity, CancellationToken cancellationToken = default);
-    Task<bool> DeleteAsync(TId id, CancellationToken cancellationToken = default);
+    // All methods now inherited from IBaseRepository
+    // This interface adds the IEntity<TId> constraint for domain entities
 }
 

@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
-using System.Security.Claims;
+using SharedKernel.Utilities;
 
 namespace SharedKernel.SignalR;
 
@@ -17,24 +17,24 @@ public class NotificationHub : Hub<INotificationHubClient>
 
     public override async Task OnConnectedAsync()
     {
-        var userId = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        var tenantId = Context.User?.FindFirst("tenant_id")?.Value;
+        var userId = Context.User?.GetUserId();
+        var tenantId = Context.User?.GetTenantId();
         var connectionId = Context.ConnectionId;
 
         if (!string.IsNullOrEmpty(userId) && !string.IsNullOrEmpty(tenantId))
         {
             // Add user to their personal group
-            await Groups.AddToGroupAsync(connectionId, $"user:{userId}");
+            await Groups.AddToGroupAsync(connectionId, SignalRGroupNames.ForUser(userId));
             
             // Add user to tenant group
-            await Groups.AddToGroupAsync(connectionId, $"tenant:{tenantId}");
+            await Groups.AddToGroupAsync(connectionId, SignalRGroupNames.ForTenant(tenantId));
             
             _logger.LogInformation(
                 "User {UserId} from tenant {TenantId} connected with connection {ConnectionId}",
                 userId, tenantId, connectionId);
             
             // Notify others in tenant
-            await Clients.Group($"tenant:{tenantId}")
+            await Clients.Group(SignalRGroupNames.ForTenant(tenantId))
                 .UserConnected(userId);
         }
 
@@ -43,8 +43,8 @@ public class NotificationHub : Hub<INotificationHubClient>
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
-        var userId = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        var tenantId = Context.User?.FindFirst("tenant_id")?.Value;
+        var userId = Context.User?.GetUserId();
+        var tenantId = Context.User?.GetTenantId();
 
         if (!string.IsNullOrEmpty(userId) && !string.IsNullOrEmpty(tenantId))
         {
@@ -53,7 +53,7 @@ public class NotificationHub : Hub<INotificationHubClient>
                 userId, tenantId);
             
             // Notify others in tenant
-            await Clients.Group($"tenant:{tenantId}")
+            await Clients.Group(SignalRGroupNames.ForTenant(tenantId))
                 .UserDisconnected(userId);
         }
 
@@ -72,7 +72,7 @@ public class NotificationHub : Hub<INotificationHubClient>
     {
         foreach (var type in notificationTypes)
         {
-            await Groups.AddToGroupAsync(Context.ConnectionId, $"notifications:{type}");
+            await Groups.AddToGroupAsync(Context.ConnectionId, SignalRGroupNames.ForNotificationType(type));
         }
         
         _logger.LogInformation("User subscribed to notification types: {Types}", 
@@ -86,7 +86,7 @@ public class NotificationHub : Hub<INotificationHubClient>
     {
         foreach (var type in notificationTypes)
         {
-            await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"notifications:{type}");
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, SignalRGroupNames.ForNotificationType(type));
         }
         
         _logger.LogInformation("User unsubscribed from notification types: {Types}", 
@@ -98,11 +98,11 @@ public class NotificationHub : Hub<INotificationHubClient>
     /// </summary>
     public async Task SendTypingIndicator(string recipientUserId)
     {
-        var senderId = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var senderId = Context.User?.GetUserId();
         
         if (!string.IsNullOrEmpty(senderId))
         {
-            await Clients.Group($"user:{recipientUserId}")
+            await Clients.Group(SignalRGroupNames.ForUser(recipientUserId))
                 .ReceiveNotification(new GeneralNotification
                 {
                     Type = "typing",

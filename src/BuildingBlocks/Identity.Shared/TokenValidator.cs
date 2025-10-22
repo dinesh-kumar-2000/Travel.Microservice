@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
+using SharedKernel.Utilities;
 
 namespace Identity.Shared;
 
@@ -12,6 +11,8 @@ public static class TokenValidator
         JwtSettings settings)
     {
         services.AddSingleton(settings);
+        services.AddSingleton<IDateTimeProvider, DateTimeProvider>();
+        services.AddSingleton<IIdGenerator, UlidIdGenerator>();
         services.AddSingleton<IJwtService, JwtService>();
 
         services.AddAuthentication(options =>
@@ -21,18 +22,7 @@ public static class TokenValidator
         })
         .AddJwtBearer(options =>
         {
-            options.TokenValidationParameters = new TokenValidationParameters
-            {
-                ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey(
-                    Encoding.UTF8.GetBytes(settings.SecretKey)),
-                ValidateIssuer = true,
-                ValidIssuer = settings.Issuer,
-                ValidateAudience = true,
-                ValidAudience = settings.Audience,
-                ValidateLifetime = true,
-                ClockSkew = TimeSpan.Zero
-            };
+            options.TokenValidationParameters = TokenValidationParametersFactory.Create(settings);
         });
 
         return services;

@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using SharedKernel.Utilities;
 
 namespace SharedKernel.Auditing;
 
@@ -9,7 +10,7 @@ public interface IAuditService
 
 public class AuditEntry
 {
-    public string Id { get; set; } = Guid.NewGuid().ToString();
+    public string Id { get; set; } = DefaultProviders.IdGenerator.Generate();
     public string TenantId { get; set; } = string.Empty;
     public string UserId { get; set; } = string.Empty;
     public string Action { get; set; } = string.Empty;
@@ -17,7 +18,7 @@ public class AuditEntry
     public string EntityId { get; set; } = string.Empty;
     public string? OldValues { get; set; }
     public string? NewValues { get; set; }
-    public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+    public DateTime Timestamp { get; set; } = DefaultProviders.DateTimeProvider.UtcNow;
     public string IpAddress { get; set; } = string.Empty;
     public string UserAgent { get; set; } = string.Empty;
 }

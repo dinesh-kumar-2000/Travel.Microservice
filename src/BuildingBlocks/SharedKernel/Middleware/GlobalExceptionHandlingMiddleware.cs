@@ -35,7 +35,7 @@ public class GlobalExceptionHandlingMiddleware
 
     private async Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
-        var correlationId = context.Request.Headers["X-Correlation-ID"].ToString();
+        var correlationId = context.Request.Headers[Constants.ApplicationConstants.Headers.CorrelationId].ToString();
         
         _logger.LogError(exception, 
             "An error occurred. CorrelationId: {CorrelationId}, Message: {Message}", 

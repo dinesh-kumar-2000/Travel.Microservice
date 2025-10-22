@@ -1,6 +1,6 @@
 namespace SharedKernel.Exceptions;
 
-public class ValidationException : Exception
+public class ValidationException : BaseApplicationException
 {
     public IDictionary<string, string[]> Errors { get; }
 

@@ -49,6 +49,27 @@ public interface IBaseRepository<TEntity, TId> where TEntity : class
 }
 
 /// <summary>
+/// Base repository interface with soft delete support
+/// </summary>
+public interface ISoftDeletableRepository<TEntity, TId> : IBaseRepository<TEntity, TId> where TEntity : class
+{
+    /// <summary>
+    /// Soft deletes an entity (marks as deleted without removing from database)
+    /// </summary>
+    Task<bool> SoftDeleteAsync(TId id, CancellationToken cancellationToken = default);
+    
+    /// <summary>
+    /// Restores a soft-deleted entity
+    /// </summary>
+    Task<bool> RestoreAsync(TId id, CancellationToken cancellationToken = default);
+    
+    /// <summary>
+    /// Gets all entities including soft-deleted ones
+    /// </summary>
+    Task<IEnumerable<TEntity>> GetAllIncludingDeletedAsync(CancellationToken cancellationToken = default);
+}
+
+/// <summary>
 /// Base repository interface for tenant-specific entities
 /// </summary>
 public interface ITenantBaseRepository<TEntity, TId> : IBaseRepository<TEntity, TId> where TEntity : class

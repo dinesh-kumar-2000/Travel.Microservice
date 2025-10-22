@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Http;
-using System.Security.Claims;
+using SharedKernel.Utilities;
 
 namespace Identity.Shared;
 
@@ -21,19 +21,14 @@ public class CurrentUserService : ICurrentUserService
         _httpContextAccessor = httpContextAccessor;
     }
 
-    public string? UserId => _httpContextAccessor.HttpContext?.User
-        .FindFirstValue(ClaimTypes.NameIdentifier);
+    public string? UserId => _httpContextAccessor.HttpContext?.User.GetUserId();
 
-    public string? Email => _httpContextAccessor.HttpContext?.User
-        .FindFirstValue(ClaimTypes.Email);
+    public string? Email => _httpContextAccessor.HttpContext?.User.GetEmail();
 
-    public string? TenantId => _httpContextAccessor.HttpContext?.User
-        .FindFirstValue("tenant_id");
+    public string? TenantId => _httpContextAccessor.HttpContext?.User.GetTenantId();
 
     public bool IsAuthenticated => _httpContextAccessor.HttpContext?.User.Identity?.IsAuthenticated ?? false;
 
-    public IEnumerable<string> Roles => _httpContextAccessor.HttpContext?.User
-        .FindAll(ClaimTypes.Role)
-        .Select(c => c.Value) ?? Enumerable.Empty<string>();
+    public IEnumerable<string> Roles => _httpContextAccessor.HttpContext?.User.GetRoles() ?? Enumerable.Empty<string>();
 }
 

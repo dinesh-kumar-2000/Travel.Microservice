@@ -7,6 +7,27 @@ namespace SharedKernel.Compression;
 
 public static class CompressionExtensions
 {
+    private const CompressionLevel DefaultCompressionLevel = CompressionLevel.Fastest;
+
+    /// <summary>
+    /// Configures compression provider options with a standard compression level
+    /// </summary>
+    private static void ConfigureCompressionLevel<T>(
+        IServiceCollection services, 
+        CompressionLevel level = DefaultCompressionLevel) where T : class
+    {
+        if (typeof(T) == typeof(BrotliCompressionProviderOptions))
+        {
+            services.Configure<BrotliCompressionProviderOptions>(options => 
+                options.Level = level);
+        }
+        else if (typeof(T) == typeof(GzipCompressionProviderOptions))
+        {
+            services.Configure<GzipCompressionProviderOptions>(options => 
+                options.Level = level);
+        }
+    }
+
     /// <summary>
     /// Add response compression (gzip and Brotli)
     /// </summary>
@@ -31,16 +52,9 @@ public static class CompressionExtensions
             });
         });
 
-        // Configure compression levels
-        services.Configure<BrotliCompressionProviderOptions>(options =>
-        {
-            options.Level = CompressionLevel.Fastest;
-        });
-
-        services.Configure<GzipCompressionProviderOptions>(options =>
-        {
-            options.Level = CompressionLevel.Fastest;
-        });
+        // Configure compression levels using shared logic
+        ConfigureCompressionLevel<BrotliCompressionProviderOptions>(services);
+        ConfigureCompressionLevel<GzipCompressionProviderOptions>(services);
 
         return services;
     }

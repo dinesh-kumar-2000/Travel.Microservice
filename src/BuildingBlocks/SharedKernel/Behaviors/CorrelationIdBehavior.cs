@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.Extensions.Logging;
+using SharedKernel.Utilities;
 
 namespace SharedKernel.Behaviors;
 
@@ -51,7 +52,7 @@ public class CorrelationIdProvider : ICorrelationIdProvider
 
     public string CorrelationId
     {
-        get => _correlationId ??= Guid.NewGuid().ToString();
+        get => _correlationId ??= DefaultProviders.IdGenerator.Generate();
         set => _correlationId = value;
     }
 }

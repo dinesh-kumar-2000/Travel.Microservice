@@ -1,6 +1,6 @@
 namespace SharedKernel.Exceptions;
 
-public class DomainException : Exception
+public class DomainException : BaseApplicationException
 {
     public DomainException(string message) : base(message)
     {
