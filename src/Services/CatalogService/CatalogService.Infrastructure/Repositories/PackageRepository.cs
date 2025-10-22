@@ -3,59 +3,36 @@ using CatalogService.Domain.Entities;
 using CatalogService.Domain.Repositories;
 using SharedKernel.Models;
 using SharedKernel.Caching;
-using System.Data;
-using Npgsql;
-using Tenancy;
+using SharedKernel.Data;
+using Microsoft.Extensions.Logging;
 
 namespace CatalogService.Infrastructure.Repositories;
 
-public class PackageRepository : IPackageRepository
+/// <summary>
+/// Repository for package operations
+/// Inherits common CRUD operations from TenantBaseRepository
+/// </summary>
+public class PackageRepository : TenantBaseRepository<Package, string>, IPackageRepository
 {
-    private readonly string _connectionString;
-    private readonly ITenantContext _tenantContext;
     private readonly ICacheService _cache;
 
-    public PackageRepository(string connectionString, ITenantContext tenantContext, ICacheService cache)
+    protected override string TableName => "packages";
+    protected override string IdColumnName => "id";
+    protected override string TenantIdColumnName => "tenant_id";
+
+    public PackageRepository(IDapperContext context, ICacheService cache, ILogger<PackageRepository> logger) 
+        : base(context, logger)
     {
-        _connectionString = connectionString;
-        _tenantContext = tenantContext;
         _cache = cache;
     }
 
-    private IDbConnection CreateConnection() => new NpgsqlConnection(_connectionString);
+    #region Overridden Methods
 
-    public async Task<Package?> GetByIdAsync(string id, CancellationToken cancellationToken = default)
+    public override async Task<string> AddAsync(Package entity, CancellationToken cancellationToken = default)
     {
-        var cacheKey = $"package:{_tenantContext.TenantId}:{id}";
-        
-        return await _cache.GetOrSetAsync(cacheKey, async () =>
-        {
-            using var connection = CreateConnection();
-            const string sql = @"
-                SELECT * FROM packages 
-                WHERE id = @Id AND tenant_id = @TenantId AND is_deleted = false";
+        if (entity == null)
+            throw new ArgumentNullException(nameof(entity));
 
-            return await connection.QueryFirstOrDefaultAsync<Package>(sql, new 
-            { 
-                Id = id, 
-                TenantId = _tenantContext.TenantId 
-            });
-        }, TimeSpan.FromMinutes(10), cancellationToken);
-    }
-
-    public async Task<IEnumerable<Package>> GetAllAsync(CancellationToken cancellationToken = default)
-    {
-        using var connection = CreateConnection();
-        const string sql = @"
-            SELECT * FROM packages 
-            WHERE tenant_id = @TenantId AND is_deleted = false
-            ORDER BY created_at DESC";
-
-        return await connection.QueryAsync<Package>(sql, new { TenantId = _tenantContext.TenantId });
-    }
-
-    public async Task<string> AddAsync(Package entity, CancellationToken cancellationToken = default)
-    {
         using var connection = CreateConnection();
         const string sql = @"
             INSERT INTO packages (
@@ -66,7 +43,7 @@ public class PackageRepository : IPackageRepository
             VALUES (
                 @Id, @TenantId, @Name, @Description, @Destination, @DurationDays,
                 @Price, @Currency, @MaxCapacity, @AvailableSlots, @Status,
-                @StartDate, @EndDate, @IsDeleted, @CreatedAt
+                @StartDate, @EndDate, false, @CreatedAt
             )";
 
         await connection.ExecuteAsync(sql, entity);
@@ -74,11 +51,15 @@ public class PackageRepository : IPackageRepository
         // Invalidate cache
         await _cache.RemoveAsync($"package:{entity.TenantId}:{entity.Id}", cancellationToken);
         
+        _logger.LogInformation("Package {PackageId} '{PackageName}' created for tenant {TenantId}", entity.Id, entity.Name, entity.TenantId);
         return entity.Id;
     }
 
-    public async Task<bool> UpdateAsync(Package entity, CancellationToken cancellationToken = default)
+    public override async Task<bool> UpdateAsync(Package entity, CancellationToken cancellationToken = default)
     {
+        if (entity == null)
+            throw new ArgumentNullException(nameof(entity));
+
         using var connection = CreateConnection();
         const string sql = @"
             UPDATE packages 
@@ -102,8 +83,17 @@ public class PackageRepository : IPackageRepository
         // Invalidate cache
         await _cache.RemoveAsync($"package:{entity.TenantId}:{entity.Id}", cancellationToken);
         
+        if (rowsAffected > 0)
+        {
+            _logger.LogInformation("Package {PackageId} updated", entity.Id);
+        }
+        
         return rowsAffected > 0;
     }
+
+    #endregion
+
+    #region Domain-Specific Methods
 
     public async Task<bool> ReserveSlotsAsync(string packageId, int quantity, CancellationToken cancellationToken = default)
     {
@@ -118,10 +108,10 @@ public class PackageRepository : IPackageRepository
             Quantity = quantity 
         });
         
-        // Invalidate cache after reservation
+        // Invalidate cache after reservation (use wildcard for tenant)
         if (result)
         {
-            await _cache.RemoveAsync($"package:{_tenantContext.TenantId}:{packageId}", cancellationToken);
+            await _cache.RemoveByPrefixAsync($"package:", cancellationToken);
         }
         
         return result;
@@ -140,35 +130,13 @@ public class PackageRepository : IPackageRepository
             Quantity = quantity 
         });
         
-        // Invalidate cache after release
+        // Invalidate cache after release (use wildcard for tenant)
         if (result)
         {
-            await _cache.RemoveAsync($"package:{_tenantContext.TenantId}:{packageId}", cancellationToken);
+            await _cache.RemoveByPrefixAsync($"package:", cancellationToken);
         }
         
         return result;
-    }
-
-    public async Task<bool> DeleteAsync(string id, CancellationToken cancellationToken = default)
-    {
-        using var connection = CreateConnection();
-        const string sql = @"
-            UPDATE packages 
-            SET is_deleted = true, 
-                deleted_at = @DeletedAt 
-            WHERE id = @Id AND tenant_id = @TenantId";
-
-        var rowsAffected = await connection.ExecuteAsync(sql, new 
-        { 
-            Id = id, 
-            TenantId = _tenantContext.TenantId,
-            DeletedAt = DateTime.UtcNow 
-        });
-        
-        // Invalidate cache
-        await _cache.RemoveAsync($"package:{_tenantContext.TenantId}:{id}", cancellationToken);
-        
-        return rowsAffected > 0;
     }
 
     public async Task<PagedResult<Package>> SearchAsync(
@@ -221,5 +189,7 @@ public class PackageRepository : IPackageRepository
 
         return new PagedResult<Package>(items.ToList(), totalCount, pageNumber, pageSize);
     }
+
+    #endregion
 }
 

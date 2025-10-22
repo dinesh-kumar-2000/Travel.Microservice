@@ -1,7 +1,8 @@
 using Dapper;
 using TenantService.Domain.Entities;
 using Microsoft.Extensions.Logging;
-using Npgsql;
+using SharedKernel.Data;
+using SharedKernel.Utilities;
 using Tenancy;
 
 namespace TenantService.Infrastructure.Repositories;
@@ -34,27 +35,25 @@ public interface ICMSRepository
 
 public class CMSRepository : ICMSRepository
 {
-    private readonly string _connectionString;
+    private readonly IDapperContext _context;
     private readonly ITenantContext _tenantContext;
     private readonly ILogger<CMSRepository> _logger;
 
     public CMSRepository(
-        string connectionString,
+        IDapperContext context,
         ITenantContext tenantContext,
         ILogger<CMSRepository> logger)
     {
-        _connectionString = connectionString;
+        _context = context;
         _tenantContext = tenantContext;
         _logger = logger;
     }
-
-    private NpgsqlConnection CreateConnection() => new NpgsqlConnection(_connectionString);
 
     #region Blog Posts
 
     public async Task<BlogPost?> GetBlogPostByIdAsync(Guid id, Guid tenantId)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         
         const string sql = @"
             SELECT id AS Id,
@@ -86,7 +85,7 @@ public class CMSRepository : ICMSRepository
         string? search,
         string? status)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         
         var whereClauses = new List<string> { "tenant_id = @TenantId" };
         var parameters = new DynamicParameters();
@@ -138,7 +137,7 @@ public class CMSRepository : ICMSRepository
 
     public async Task<int> GetBlogPostCountAsync(Guid tenantId, string? search, string? status)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         
         var whereClauses = new List<string> { "tenant_id = @TenantId" };
         var parameters = new DynamicParameters();
@@ -164,7 +163,7 @@ public class CMSRepository : ICMSRepository
 
     public async Task<BlogPost> CreateBlogPostAsync(BlogPost post)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         
         post.Id = Guid.NewGuid();
         post.CreatedAt = DateTime.UtcNow;
@@ -195,7 +194,7 @@ public class CMSRepository : ICMSRepository
 
     public async Task<BlogPost?> UpdateBlogPostAsync(BlogPost post)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         
         post.UpdatedAt = DateTime.UtcNow;
 
@@ -224,7 +223,7 @@ public class CMSRepository : ICMSRepository
 
     public async Task<bool> DeleteBlogPostAsync(Guid id, Guid tenantId)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         
         const string sql = "DELETE FROM blog_posts WHERE id = @Id AND tenant_id = @TenantId";
         var rowsAffected = await connection.ExecuteAsync(sql, new { Id = id, TenantId = tenantId });
@@ -238,7 +237,7 @@ public class CMSRepository : ICMSRepository
 
     public async Task<List<FAQ>> GetFAQsAsync(Guid tenantId, string? category)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         
         var whereClauses = new List<string> { "tenant_id = @TenantId" };
         var parameters = new DynamicParameters();
@@ -272,7 +271,7 @@ public class CMSRepository : ICMSRepository
 
     public async Task<FAQ?> GetFAQByIdAsync(Guid id, Guid tenantId)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         
         const string sql = @"
             SELECT id AS Id,
@@ -292,7 +291,7 @@ public class CMSRepository : ICMSRepository
 
     public async Task<FAQ> CreateFAQAsync(FAQ faq)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         
         faq.Id = Guid.NewGuid();
         faq.CreatedAt = DateTime.UtcNow;
@@ -316,7 +315,7 @@ public class CMSRepository : ICMSRepository
 
     public async Task<FAQ?> UpdateFAQAsync(FAQ faq)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         
         faq.UpdatedAt = DateTime.UtcNow;
 
@@ -336,7 +335,7 @@ public class CMSRepository : ICMSRepository
 
     public async Task<bool> DeleteFAQAsync(Guid id, Guid tenantId)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         
         const string sql = "DELETE FROM faqs WHERE id = @Id AND tenant_id = @TenantId";
         var rowsAffected = await connection.ExecuteAsync(sql, new { Id = id, TenantId = tenantId });
@@ -350,7 +349,7 @@ public class CMSRepository : ICMSRepository
 
     public async Task<List<CMSPage>> GetCMSPagesAsync(Guid tenantId, string? pageType)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         
         var whereClauses = new List<string> { "tenant_id = @TenantId" };
         var parameters = new DynamicParameters();
@@ -386,7 +385,7 @@ public class CMSRepository : ICMSRepository
 
     public async Task<CMSPage?> GetCMSPageByIdAsync(Guid id, Guid tenantId)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         
         const string sql = @"
             SELECT id AS Id,
@@ -408,7 +407,7 @@ public class CMSRepository : ICMSRepository
 
     public async Task<CMSPage?> GetCMSPageBySlugAsync(string slug, Guid tenantId)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         
         const string sql = @"
             SELECT id AS Id,
@@ -430,7 +429,7 @@ public class CMSRepository : ICMSRepository
 
     public async Task<CMSPage> CreateCMSPageAsync(CMSPage page)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         
         page.Id = Guid.NewGuid();
         page.CreatedAt = DateTime.UtcNow;
@@ -454,7 +453,7 @@ public class CMSRepository : ICMSRepository
 
     public async Task<CMSPage?> UpdateCMSPageAsync(CMSPage page)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         
         page.UpdatedAt = DateTime.UtcNow;
 
@@ -476,7 +475,7 @@ public class CMSRepository : ICMSRepository
 
     public async Task<bool> DeleteCMSPageAsync(Guid id, Guid tenantId)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         
         // Don't allow deletion of system pages
         const string checkSql = "SELECT page_type FROM cms_pages WHERE id = @Id AND tenant_id = @TenantId";

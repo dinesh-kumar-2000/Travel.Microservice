@@ -95,7 +95,7 @@ public class UserRepository : TenantBaseRepository<User, string>, IUserRepositor
         var rowsAffected = await connection.ExecuteAsync(sql, new 
         { 
             Id = id,
-            DeletedAt = DateTime.UtcNow 
+            DeletedAt = DefaultProviders.DateTimeProvider.UtcNow 
         });
 
         if (rowsAffected > 0)
@@ -184,10 +184,10 @@ public class UserRepository : TenantBaseRepository<User, string>, IUserRepositor
 
         await connection.ExecuteAsync(sql, new 
         { 
-            Id = UlidGenerator.Generate(),
+            Id = DefaultProviders.IdGenerator.Generate(),
             UserId = userId, 
             RoleId = roleId,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DefaultProviders.DateTimeProvider.UtcNow
         });
 
         _logger.LogInformation("Role {RoleId} assigned to user {UserId}", roleId, userId);
@@ -247,8 +247,8 @@ public class UserRepository : TenantBaseRepository<User, string>, IUserRepositor
             UserId = userId,
             Secret = secret,
             BackupCodes = backupCodes.ToArray(),
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
+            CreatedAt = DefaultProviders.DateTimeProvider.UtcNow,
+            UpdatedAt = DefaultProviders.DateTimeProvider.UtcNow
         });
 
         _logger.LogInformation("Two-factor secret saved for user {UserId}", userId);
@@ -272,7 +272,7 @@ public class UserRepository : TenantBaseRepository<User, string>, IUserRepositor
         {
             UserId = userId,
             Secret = secret,
-            UpdatedAt = DateTime.UtcNow
+            UpdatedAt = DefaultProviders.DateTimeProvider.UtcNow
         });
 
         if (rowsAffected > 0)
@@ -297,7 +297,7 @@ public class UserRepository : TenantBaseRepository<User, string>, IUserRepositor
         var rowsAffected = await connection.ExecuteAsync(sql, new
         {
             UserId = userId,
-            UpdatedAt = DateTime.UtcNow
+            UpdatedAt = DefaultProviders.DateTimeProvider.UtcNow
         });
 
         if (rowsAffected > 0)
@@ -342,7 +342,7 @@ public class UserRepository : TenantBaseRepository<User, string>, IUserRepositor
         {
             UserId = userId,
             BackupCodes = updatedCodes.ToArray(),
-            UpdatedAt = DateTime.UtcNow
+            UpdatedAt = DefaultProviders.DateTimeProvider.UtcNow
         });
 
         await LogTwoFactorActivityAsync(userId, "backup_used", true);
@@ -367,7 +367,7 @@ public class UserRepository : TenantBaseRepository<User, string>, IUserRepositor
         {
             UserId = userId,
             BackupCodes = backupCodes.ToArray(),
-            UpdatedAt = DateTime.UtcNow
+            UpdatedAt = DefaultProviders.DateTimeProvider.UtcNow
         });
 
         if (rowsAffected > 0)
@@ -403,8 +403,8 @@ public class UserRepository : TenantBaseRepository<User, string>, IUserRepositor
         var rowsAffected = await connection.ExecuteAsync(sql, new
         {
             UserId = userId,
-            LastUsedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
+            LastUsedAt = DefaultProviders.DateTimeProvider.UtcNow,
+            UpdatedAt = DefaultProviders.DateTimeProvider.UtcNow
         });
 
         return rowsAffected > 0;
@@ -438,7 +438,7 @@ public class UserRepository : TenantBaseRepository<User, string>, IUserRepositor
             IpAddress = ipAddress,
             UserAgent = userAgent,
             Success = success,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DefaultProviders.DateTimeProvider.UtcNow
         });
     }
 

@@ -1,7 +1,8 @@
 using Dapper;
 using IdentityService.Domain.Entities;
-using IdentityService.Infrastructure.Data;
 using Microsoft.Extensions.Logging;
+using SharedKernel.Data;
+using SharedKernel.Utilities;
 using System.Text.Json;
 
 namespace IdentityService.Infrastructure.Repositories;
@@ -21,20 +22,20 @@ public interface ITwoFactorAuthRepository
 
 public class TwoFactorAuthRepository : ITwoFactorAuthRepository
 {
-    private readonly IDbConnectionFactory _connectionFactory;
+    private readonly IDapperContext _context;
     private readonly ILogger<TwoFactorAuthRepository> _logger;
 
     public TwoFactorAuthRepository(
-        IDbConnectionFactory connectionFactory,
+        IDapperContext context,
         ILogger<TwoFactorAuthRepository> logger)
     {
-        _connectionFactory = connectionFactory;
+        _context = context;
         _logger = logger;
     }
 
     public async Task<TwoFactorAuth?> GetByUserIdAsync(Guid userId)
     {
-        using var connection = _connectionFactory.CreateConnection();
+        using var connection = _context.CreateConnection();
         
         const string sql = @"
             SELECT id AS Id,
@@ -53,7 +54,7 @@ public class TwoFactorAuthRepository : ITwoFactorAuthRepository
 
     public async Task<bool> SaveTwoFactorSecretAsync(Guid userId, string secret, List<string> backupCodes)
     {
-        using var connection = _connectionFactory.CreateConnection();
+        using var connection = _context.CreateConnection();
         
         const string sql = @"
             INSERT INTO two_factor_auth (
@@ -73,8 +74,8 @@ public class TwoFactorAuthRepository : ITwoFactorAuthRepository
             UserId = userId,
             Secret = secret,
             BackupCodes = backupCodes.ToArray(),
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
+            CreatedAt = DefaultProviders.DateTimeProvider.UtcNow,
+            UpdatedAt = DefaultProviders.DateTimeProvider.UtcNow
         });
 
         return rowsAffected > 0;
@@ -82,7 +83,7 @@ public class TwoFactorAuthRepository : ITwoFactorAuthRepository
 
     public async Task<bool> EnableTwoFactorAsync(Guid userId, string secret)
     {
-        using var connection = _connectionFactory.CreateConnection();
+        using var connection = _context.CreateConnection();
         
         const string sql = @"
             UPDATE two_factor_auth 
@@ -94,7 +95,7 @@ public class TwoFactorAuthRepository : ITwoFactorAuthRepository
         {
             UserId = userId,
             Secret = secret,
-            UpdatedAt = DateTime.UtcNow
+            UpdatedAt = DefaultProviders.DateTimeProvider.UtcNow
         });
 
         if (rowsAffected > 0)
@@ -107,7 +108,7 @@ public class TwoFactorAuthRepository : ITwoFactorAuthRepository
 
     public async Task<bool> DisableTwoFactorAsync(Guid userId)
     {
-        using var connection = _connectionFactory.CreateConnection();
+        using var connection = _context.CreateConnection();
         
         const string sql = @"
             UPDATE two_factor_auth 
@@ -118,7 +119,7 @@ public class TwoFactorAuthRepository : ITwoFactorAuthRepository
         var rowsAffected = await connection.ExecuteAsync(sql, new
         {
             UserId = userId,
-            UpdatedAt = DateTime.UtcNow
+            UpdatedAt = DefaultProviders.DateTimeProvider.UtcNow
         });
 
         if (rowsAffected > 0)
@@ -131,7 +132,7 @@ public class TwoFactorAuthRepository : ITwoFactorAuthRepository
 
     public async Task<bool> VerifyBackupCodeAsync(Guid userId, string code)
     {
-        using var connection = _connectionFactory.CreateConnection();
+        using var connection = _context.CreateConnection();
         
         const string sql = @"
             SELECT backup_codes 
@@ -159,7 +160,7 @@ public class TwoFactorAuthRepository : ITwoFactorAuthRepository
         {
             UserId = userId,
             BackupCodes = updatedCodes.ToArray(),
-            UpdatedAt = DateTime.UtcNow
+            UpdatedAt = DefaultProviders.DateTimeProvider.UtcNow
         });
 
         await LogActivityAsync(userId, "backup_used", true);
@@ -168,7 +169,7 @@ public class TwoFactorAuthRepository : ITwoFactorAuthRepository
 
     public async Task<bool> UpdateBackupCodesAsync(Guid userId, List<string> backupCodes)
     {
-        using var connection = _connectionFactory.CreateConnection();
+        using var connection = _context.CreateConnection();
         
         const string sql = @"
             UPDATE two_factor_auth 
@@ -180,7 +181,7 @@ public class TwoFactorAuthRepository : ITwoFactorAuthRepository
         {
             UserId = userId,
             BackupCodes = backupCodes.ToArray(),
-            UpdatedAt = DateTime.UtcNow
+            UpdatedAt = DefaultProviders.DateTimeProvider.UtcNow
         });
 
         return rowsAffected > 0;
@@ -188,7 +189,7 @@ public class TwoFactorAuthRepository : ITwoFactorAuthRepository
 
     public async Task<int> GetBackupCodesRemainingAsync(Guid userId)
     {
-        using var connection = _connectionFactory.CreateConnection();
+        using var connection = _context.CreateConnection();
         
         const string sql = @"
             SELECT COALESCE(array_length(backup_codes, 1), 0)
@@ -200,7 +201,7 @@ public class TwoFactorAuthRepository : ITwoFactorAuthRepository
 
     public async Task<bool> UpdateLastUsedAsync(Guid userId)
     {
-        using var connection = _connectionFactory.CreateConnection();
+        using var connection = _context.CreateConnection();
         
         const string sql = @"
             UPDATE two_factor_auth 
@@ -211,8 +212,8 @@ public class TwoFactorAuthRepository : ITwoFactorAuthRepository
         var rowsAffected = await connection.ExecuteAsync(sql, new
         {
             UserId = userId,
-            LastUsedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
+            LastUsedAt = DefaultProviders.DateTimeProvider.UtcNow,
+            UpdatedAt = DefaultProviders.DateTimeProvider.UtcNow
         });
 
         return rowsAffected > 0;
@@ -225,7 +226,7 @@ public class TwoFactorAuthRepository : ITwoFactorAuthRepository
         string? ipAddress = null,
         string? userAgent = null)
     {
-        using var connection = _connectionFactory.CreateConnection();
+        using var connection = _context.CreateConnection();
         
         const string sql = @"
             INSERT INTO two_factor_auth_logs (

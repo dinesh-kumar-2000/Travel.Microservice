@@ -2,32 +2,31 @@ using Dapper;
 using BookingService.Domain.Entities;
 using BookingService.Domain.Repositories;
 using Microsoft.Extensions.Logging;
-using Npgsql;
+using SharedKernel.Data;
+using SharedKernel.Utilities;
 using Tenancy;
 
 namespace BookingService.Infrastructure.Repositories;
 
 public class LoyaltyRepository : ILoyaltyRepository
 {
-    private readonly string _connectionString;
+    private readonly IDapperContext _context;
     private readonly ITenantContext _tenantContext;
     private readonly ILogger<LoyaltyRepository> _logger;
 
     public LoyaltyRepository(
-        string connectionString,
+        IDapperContext context,
         ITenantContext tenantContext,
         ILogger<LoyaltyRepository> logger)
     {
-        _connectionString = connectionString;
+        _context = context;
         _tenantContext = tenantContext;
         _logger = logger;
     }
 
-    private NpgsqlConnection CreateConnection() => new NpgsqlConnection(_connectionString);
-
     public async Task<LoyaltyPoints?> GetPointsByUserIdAsync(Guid userId, Guid tenantId)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         
         const string sql = @"
             SELECT id AS Id,
@@ -49,11 +48,11 @@ public class LoyaltyRepository : ILoyaltyRepository
 
     public async Task<LoyaltyPoints> CreatePointsAccountAsync(LoyaltyPoints points)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         
         points.Id = Guid.NewGuid();
-        points.CreatedAt = DateTime.UtcNow;
-        points.UpdatedAt = DateTime.UtcNow;
+        points.CreatedAt = DefaultProviders.DateTimeProvider.UtcNow;
+        points.UpdatedAt = DefaultProviders.DateTimeProvider.UtcNow;
 
         const string sql = @"
             INSERT INTO loyalty_points (
@@ -73,9 +72,9 @@ public class LoyaltyRepository : ILoyaltyRepository
 
     public async Task<LoyaltyPoints?> UpdatePointsAsync(LoyaltyPoints points)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         
-        points.UpdatedAt = DateTime.UtcNow;
+        points.UpdatedAt = DefaultProviders.DateTimeProvider.UtcNow;
 
         const string sql = @"
             UPDATE loyalty_points SET
@@ -93,10 +92,10 @@ public class LoyaltyRepository : ILoyaltyRepository
 
     public async Task<LoyaltyTransaction> AddTransactionAsync(LoyaltyTransaction transaction)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         
         transaction.Id = Guid.NewGuid();
-        transaction.CreatedAt = DateTime.UtcNow;
+        transaction.CreatedAt = DefaultProviders.DateTimeProvider.UtcNow;
 
         const string sql = @"
             INSERT INTO loyalty_transactions (
@@ -122,7 +121,7 @@ public class LoyaltyRepository : ILoyaltyRepository
         int page,
         int limit)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         
         var offset = (page - 1) * limit;
 
@@ -155,7 +154,7 @@ public class LoyaltyRepository : ILoyaltyRepository
 
     public async Task<int> GetTransactionCountAsync(Guid userId, Guid tenantId)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         
         const string sql = @"
             SELECT COUNT(*) 
@@ -167,7 +166,7 @@ public class LoyaltyRepository : ILoyaltyRepository
 
     public async Task<List<LoyaltyReward>> GetRewardsAsync(Guid tenantId, string? category)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         
         var whereClauses = new List<string> { "tenant_id = @TenantId", "is_available = true" };
         var parameters = new DynamicParameters();
@@ -206,7 +205,7 @@ public class LoyaltyRepository : ILoyaltyRepository
 
     public async Task<LoyaltyReward?> GetRewardByIdAsync(Guid rewardId)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         
         const string sql = @"
             SELECT id AS Id,
@@ -231,11 +230,11 @@ public class LoyaltyRepository : ILoyaltyRepository
 
     public async Task<LoyaltyReward> CreateRewardAsync(LoyaltyReward reward)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         
         reward.Id = Guid.NewGuid();
-        reward.CreatedAt = DateTime.UtcNow;
-        reward.UpdatedAt = DateTime.UtcNow;
+        reward.CreatedAt = DefaultProviders.DateTimeProvider.UtcNow;
+        reward.UpdatedAt = DefaultProviders.DateTimeProvider.UtcNow;
 
         const string sql = @"
             INSERT INTO loyalty_rewards (
@@ -255,7 +254,7 @@ public class LoyaltyRepository : ILoyaltyRepository
 
     public async Task<LoyaltyReward?> UpdateRewardAsync(LoyaltyReward reward)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         
         reward.UpdatedAt = DateTime.UtcNow;
 
@@ -280,7 +279,7 @@ public class LoyaltyRepository : ILoyaltyRepository
 
     public async Task<bool> DeleteRewardAsync(Guid rewardId)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         
         const string sql = "DELETE FROM loyalty_rewards WHERE id = @Id";
         var rowsAffected = await connection.ExecuteAsync(sql, new { Id = rewardId });
@@ -290,10 +289,10 @@ public class LoyaltyRepository : ILoyaltyRepository
 
     public async Task<LoyaltyRedemption> CreateRedemptionAsync(LoyaltyRedemption redemption)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         
         redemption.Id = Guid.NewGuid();
-        redemption.RedeemedAt = DateTime.UtcNow;
+        redemption.RedeemedAt = DefaultProviders.DateTimeProvider.UtcNow;
         redemption.RedemptionCode = GenerateRedemptionCode();
 
         const string sql = @"
@@ -316,7 +315,7 @@ public class LoyaltyRepository : ILoyaltyRepository
 
     public async Task<List<LoyaltyRedemption>> GetRedemptionsAsync(Guid userId, Guid tenantId)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         
         const string sql = @"
             SELECT r.id AS Id,
@@ -340,7 +339,7 @@ public class LoyaltyRepository : ILoyaltyRepository
 
     public async Task<LoyaltyRedemption?> UpdateRedemptionAsync(LoyaltyRedemption redemption)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         
         const string sql = @"
             UPDATE loyalty_redemptions SET
@@ -354,7 +353,7 @@ public class LoyaltyRepository : ILoyaltyRepository
 
     public async Task<List<LoyaltyTier>> GetTiersAsync(Guid tenantId)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         
         const string sql = @"
             SELECT id AS Id,
@@ -374,7 +373,7 @@ public class LoyaltyRepository : ILoyaltyRepository
 
     public async Task<LoyaltyTier?> GetTierByNameAsync(Guid tenantId, string tierName)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         
         const string sql = @"
             SELECT id AS Id,
@@ -394,7 +393,8 @@ public class LoyaltyRepository : ILoyaltyRepository
     private string GenerateRedemptionCode()
     {
         var random = new Random();
-        return $"RDM{DateTime.UtcNow:yyyyMMdd}{random.Next(1000, 9999)}";
+        var now = DefaultProviders.DateTimeProvider.UtcNow;
+        return $"RDM{now:yyyyMMdd}{random.Next(1000, 9999)}";
     }
 }
 

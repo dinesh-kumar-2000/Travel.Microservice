@@ -1,100 +1,34 @@
 using Dapper;
 using CatalogService.Domain.Entities;
 using CatalogService.Domain.Repositories;
-using CatalogService.Infrastructure.Data;
-using Tenancy;
+using SharedKernel.Data;
+using Microsoft.Extensions.Logging;
 
 namespace CatalogService.Infrastructure.Repositories;
 
-public class TourRepository : ITourRepository
+/// <summary>
+/// Repository for tour operations
+/// Inherits common CRUD operations from TenantBaseRepository
+/// </summary>
+public class TourRepository : TenantBaseRepository<Tour, string>, ITourRepository
 {
-    private readonly IDbConnectionFactory _connectionFactory;
-    private readonly ITenantContext _tenantContext;
+    protected override string TableName => "tours";
+    protected override string IdColumnName => "id";
+    protected override string TenantIdColumnName => "tenant_id";
 
-    public TourRepository(IDbConnectionFactory connectionFactory, ITenantContext tenantContext)
+    public TourRepository(IDapperContext context, ILogger<TourRepository> logger) 
+        : base(context, logger)
     {
-        _connectionFactory = connectionFactory;
-        _tenantContext = tenantContext;
     }
 
-    public async Task<Tour?> GetByIdAsync(string id, CancellationToken cancellationToken = default)
+    #region Overridden Methods
+
+    public override async Task<string> AddAsync(Tour entity, CancellationToken cancellationToken = default)
     {
-        using var connection = _connectionFactory.CreateConnection();
-        
-        const string sql = @"
-            SELECT id AS Id,
-                   tenant_id AS TenantId,
-                   name AS Name,
-                   description AS Description,
-                   destination AS Destination,
-                   locations AS Locations,
-                   duration_days AS DurationDays,
-                   price AS Price,
-                   currency AS Currency,
-                   max_group_size AS MaxGroupSize,
-                   available_spots AS AvailableSpots,
-                   status AS Status,
-                   start_date AS StartDate,
-                   end_date AS EndDate,
-                   inclusions AS Inclusions,
-                   exclusions AS Exclusions,
-                   images AS Images,
-                   difficulty AS Difficulty,
-                   languages AS Languages,
-                   min_age AS MinAge,
-                   meeting_point AS MeetingPoint,
-                   guide_info AS GuideInfo,
-                   created_at AS CreatedAt,
-                   updated_at AS UpdatedAt
-            FROM tours
-            WHERE id = @Id AND tenant_id = @TenantId AND is_deleted = false";
+        if (entity == null)
+            throw new ArgumentNullException(nameof(entity));
 
-        return await connection.QueryFirstOrDefaultAsync<Tour>(sql, new 
-        { 
-            Id = id, 
-            TenantId = _tenantContext.TenantId 
-        });
-    }
-
-    public async Task<IEnumerable<Tour>> GetAllAsync(CancellationToken cancellationToken = default)
-    {
-        using var connection = _connectionFactory.CreateConnection();
-        
-        const string sql = @"
-            SELECT id AS Id,
-                   tenant_id AS TenantId,
-                   name AS Name,
-                   description AS Description,
-                   destination AS Destination,
-                   locations AS Locations,
-                   duration_days AS DurationDays,
-                   price AS Price,
-                   currency AS Currency,
-                   max_group_size AS MaxGroupSize,
-                   available_spots AS AvailableSpots,
-                   status AS Status,
-                   start_date AS StartDate,
-                   end_date AS EndDate,
-                   inclusions AS Inclusions,
-                   exclusions AS Exclusions,
-                   images AS Images,
-                   difficulty AS Difficulty,
-                   languages AS Languages,
-                   min_age AS MinAge,
-                   meeting_point AS MeetingPoint,
-                   guide_info AS GuideInfo,
-                   created_at AS CreatedAt,
-                   updated_at AS UpdatedAt
-            FROM tours
-            WHERE tenant_id = @TenantId AND is_deleted = false
-            ORDER BY start_date DESC";
-
-        return await connection.QueryAsync<Tour>(sql, new { TenantId = _tenantContext.TenantId });
-    }
-
-    public async Task<string> AddAsync(Tour entity, CancellationToken cancellationToken = default)
-    {
-        using var connection = _connectionFactory.CreateConnection();
+        using var connection = CreateConnection();
         const string sql = @"
             INSERT INTO tours (
                 id, tenant_id, name, description, destination, locations, duration_days,
@@ -110,12 +44,16 @@ public class TourRepository : ITourRepository
             )";
         
         await connection.ExecuteAsync(sql, entity);
+        _logger.LogInformation("Tour {TourId} '{TourName}' created", entity.Id, entity.Name);
         return entity.Id;
     }
 
-    public async Task<bool> UpdateAsync(Tour entity, CancellationToken cancellationToken = default)
+    public override async Task<bool> UpdateAsync(Tour entity, CancellationToken cancellationToken = default)
     {
-        using var connection = _connectionFactory.CreateConnection();
+        if (entity == null)
+            throw new ArgumentNullException(nameof(entity));
+
+        using var connection = CreateConnection();
         
         const string sql = @"
             UPDATE tours SET
@@ -130,28 +68,18 @@ public class TourRepository : ITourRepository
             WHERE id = @Id AND tenant_id = @TenantId";
         
         var rowsAffected = await connection.ExecuteAsync(sql, entity);
-        return rowsAffected > 0;
-    }
-
-    public async Task<bool> DeleteAsync(string id, CancellationToken cancellationToken = default)
-    {
-        using var connection = _connectionFactory.CreateConnection();
         
-        const string sql = @"
-            UPDATE tours 
-            SET is_deleted = true,
-                deleted_at = @DeletedAt
-            WHERE id = @Id AND tenant_id = @TenantId";
-
-        var rowsAffected = await connection.ExecuteAsync(sql, new 
-        { 
-            Id = id, 
-            TenantId = _tenantContext.TenantId, 
-            DeletedAt = DateTime.UtcNow 
-        });
-
+        if (rowsAffected > 0)
+        {
+            _logger.LogInformation("Tour {TourId} updated", entity.Id);
+        }
+        
         return rowsAffected > 0;
     }
+
+    #endregion
+
+    #region Domain-Specific Methods
 
     public async Task<(IEnumerable<Tour> Tours, int TotalCount)> SearchToursAsync(
         string tenantId,
@@ -166,7 +94,7 @@ public class TourRepository : ITourRepository
         int pageSize = 10,
         CancellationToken cancellationToken = default)
     {
-        using var connection = _connectionFactory.CreateConnection();
+        using var connection = CreateConnection();
         
         var whereClauses = new List<string> { "tenant_id = @TenantId", "is_deleted = false", "status = @Status" };
         var parameters = new DynamicParameters();
@@ -263,38 +191,13 @@ public class TourRepository : ITourRepository
 
     public async Task<IEnumerable<Tour>> GetByTenantAsync(string tenantId, CancellationToken cancellationToken = default)
     {
-        using var connection = _connectionFactory.CreateConnection();
-        
-        const string sql = @"
-            SELECT id AS Id,
-                   tenant_id AS TenantId,
-                   name AS Name,
-                   description AS Description,
-                   destination AS Destination,
-                   locations AS Locations,
-                   duration_days AS DurationDays,
-                   price AS Price,
-                   currency AS Currency,
-                   max_group_size AS MaxGroupSize,
-                   available_spots AS AvailableSpots,
-                   status AS Status,
-                   start_date AS StartDate,
-                   end_date AS EndDate,
-                   inclusions AS Inclusions,
-                   exclusions AS Exclusions,
-                   images AS Images,
-                   difficulty AS Difficulty,
-                   languages AS Languages,
-                   min_age AS MinAge,
-                   meeting_point AS MeetingPoint,
-                   guide_info AS GuideInfo,
-                   created_at AS CreatedAt,
-                   updated_at AS UpdatedAt
-            FROM tours
-            WHERE tenant_id = @TenantId AND is_deleted = false
-            ORDER BY start_date DESC";
+        if (string.IsNullOrEmpty(tenantId))
+            throw new ArgumentNullException(nameof(tenantId));
 
-        return await connection.QueryAsync<Tour>(sql, new { TenantId = tenantId });
+        // Use inherited method from TenantBaseRepository
+        return await GetAllByTenantAsync(Guid.Parse(tenantId), cancellationToken);
     }
+
+    #endregion
 }
 

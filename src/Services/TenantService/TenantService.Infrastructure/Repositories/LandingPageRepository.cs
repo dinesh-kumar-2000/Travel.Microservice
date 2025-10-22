@@ -1,22 +1,20 @@
 using Dapper;
 using TenantService.Domain.Entities;
 using TenantService.Domain.Repositories;
-using System.Data;
-using Npgsql;
+using SharedKernel.Data;
+using SharedKernel.Utilities;
 using System.Text.Json;
 
 namespace TenantService.Infrastructure.Repositories;
 
 public class LandingPageRepository : ILandingPageRepository
 {
-    private readonly string _connectionString;
+    private readonly IDapperContext _context;
 
-    public LandingPageRepository(string connectionString)
+    public LandingPageRepository(IDapperContext context)
     {
-        _connectionString = connectionString;
+        _context = context;
     }
-
-    private IDbConnection CreateConnection() => new NpgsqlConnection(_connectionString);
 
     private static string GetSelectSql() => @"
         SELECT 
@@ -60,7 +58,7 @@ public class LandingPageRepository : ILandingPageRepository
 
     public async Task<LandingPage?> GetByIdAsync(string pageId, CancellationToken cancellationToken = default)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         var sql = GetSelectSql() + " WHERE page_id = @PageId";
         var data = await connection.QueryFirstOrDefaultAsync<LandingPageData>(sql, new { PageId = pageId });
         return data?.ToEntity();
@@ -68,7 +66,7 @@ public class LandingPageRepository : ILandingPageRepository
 
     public async Task<LandingPage?> GetBySlugAsync(string tenantId, string slug, string language = "en", CancellationToken cancellationToken = default)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         var sql = GetSelectSql() + " WHERE tenant_id = @TenantId AND slug = @Slug AND language = @Language";
         var data = await connection.QueryFirstOrDefaultAsync<LandingPageData>(sql, new { TenantId = tenantId, Slug = slug, Language = language });
         return data?.ToEntity();
@@ -76,7 +74,7 @@ public class LandingPageRepository : ILandingPageRepository
 
     public async Task<IEnumerable<LandingPage>> GetByTenantIdAsync(string tenantId, CancellationToken cancellationToken = default)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         var sql = GetSelectSql() + " WHERE tenant_id = @TenantId ORDER BY last_modified DESC";
         var data = await connection.QueryAsync<LandingPageData>(sql, new { TenantId = tenantId });
         return data.Select(d => d.ToEntity());
@@ -84,7 +82,7 @@ public class LandingPageRepository : ILandingPageRepository
 
     public async Task<IEnumerable<LandingPage>> GetPublishedByTenantIdAsync(string tenantId, CancellationToken cancellationToken = default)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         var sql = GetSelectSql() + " WHERE tenant_id = @TenantId AND status = 'Published' ORDER BY published_at DESC";
         var data = await connection.QueryAsync<LandingPageData>(sql, new { TenantId = tenantId });
         return data.Select(d => d.ToEntity());
@@ -92,7 +90,7 @@ public class LandingPageRepository : ILandingPageRepository
 
     public async Task<IEnumerable<LandingPage>> SearchAsync(string tenantId, string? searchTerm, string? status, int page = 1, int pageSize = 20, CancellationToken cancellationToken = default)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         var offset = (page - 1) * pageSize;
         
         var conditions = new List<string> { "tenant_id = @TenantId" };
@@ -124,7 +122,7 @@ public class LandingPageRepository : ILandingPageRepository
 
     public async Task<bool> ExistsAsync(string pageId, CancellationToken cancellationToken = default)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         var count = await connection.ExecuteScalarAsync<int>(
             "SELECT COUNT(1) FROM landing_pages WHERE page_id = @PageId", new { PageId = pageId });
         return count > 0;
@@ -132,7 +130,7 @@ public class LandingPageRepository : ILandingPageRepository
 
     public async Task<bool> SlugExistsAsync(string tenantId, string slug, string language, string? excludePageId = null, CancellationToken cancellationToken = default)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         var sql = "SELECT COUNT(1) FROM landing_pages WHERE tenant_id = @TenantId AND slug = @Slug AND language = @Language";
         
         if (!string.IsNullOrEmpty(excludePageId))
@@ -147,7 +145,7 @@ public class LandingPageRepository : ILandingPageRepository
 
     public async Task<LandingPage> AddAsync(LandingPage page, CancellationToken cancellationToken = default)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         var data = LandingPageData.FromEntity(page);
         
         var sql = @"
@@ -179,7 +177,7 @@ public class LandingPageRepository : ILandingPageRepository
 
     public async Task<LandingPage> UpdateAsync(LandingPage page, CancellationToken cancellationToken = default)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         var data = LandingPageData.FromEntity(page);
         
         var sql = @"
@@ -207,14 +205,14 @@ public class LandingPageRepository : ILandingPageRepository
 
     public async Task<bool> DeleteAsync(string pageId, CancellationToken cancellationToken = default)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         var result = await connection.ExecuteAsync("DELETE FROM landing_pages WHERE page_id = @PageId", new { PageId = pageId });
         return result > 0;
     }
 
     public async Task<int> GetTotalCountAsync(string tenantId, CancellationToken cancellationToken = default)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         return await connection.ExecuteScalarAsync<int>(
             "SELECT COUNT(1) FROM landing_pages WHERE tenant_id = @TenantId", new { TenantId = tenantId });
     }

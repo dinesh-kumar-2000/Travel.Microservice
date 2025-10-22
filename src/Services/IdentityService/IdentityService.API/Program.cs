@@ -1,6 +1,5 @@
 using EventBus.Extensions;
 using Identity.Shared;
-using IdentityService.API.Middleware;
 using IdentityService.Application;
 using IdentityService.Infrastructure;
 using Microsoft.AspNetCore.Mvc;
@@ -188,9 +187,9 @@ app.UseResponseCompression();
 // CORS (must be before authentication)
 app.UseCors();
 
-// Custom Middleware
+// Custom Middleware from SharedKernel
 app.UseMiddleware<CorrelationIdMiddleware>();
-app.UseMiddleware<ExceptionHandlingMiddleware>();
+app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
 
 app.UseHttpsRedirection();
 

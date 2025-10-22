@@ -2,55 +2,99 @@ using Dapper;
 using BookingService.Domain.Entities;
 using BookingService.Domain.Repositories;
 using Microsoft.Extensions.Logging;
-using Npgsql;
-using Tenancy;
+using SharedKernel.Data;
+using SharedKernel.Utilities;
 
 namespace BookingService.Infrastructure.Repositories;
 
-public class ReviewRepository : IReviewRepository
+/// <summary>
+/// Repository for review operations
+/// Inherits common CRUD operations from TenantBaseRepository
+/// </summary>
+public class ReviewRepository : TenantBaseRepository<Review, Guid>, IReviewRepository
 {
-    private readonly string _connectionString;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<ReviewRepository> _logger;
+    protected override string TableName => "reviews";
+    protected override string IdColumnName => "id";
+    protected override string TenantIdColumnName => "tenant_id";
 
-    public ReviewRepository(
-        string connectionString,
-        ITenantContext tenantContext,
-        ILogger<ReviewRepository> logger)
+    public ReviewRepository(IDapperContext context, ILogger<ReviewRepository> logger) 
+        : base(context, logger)
     {
-        _connectionString = connectionString;
-        _tenantContext = tenantContext;
-        _logger = logger;
     }
 
-    private NpgsqlConnection CreateConnection() => new NpgsqlConnection(_connectionString);
+    #region Overridden Methods
 
-    public async Task<Review?> GetByIdAsync(Guid id)
+    public override async Task<Guid> AddAsync(Review entity, CancellationToken cancellationToken = default)
     {
+        if (entity == null)
+            throw new ArgumentNullException(nameof(entity));
+
+        entity.Id = Guid.NewGuid();
+        entity.CreatedAt = DefaultProviders.DateTimeProvider.UtcNow;
+        entity.UpdatedAt = DefaultProviders.DateTimeProvider.UtcNow;
+
         using var connection = CreateConnection();
         
         const string sql = @"
-            SELECT id AS Id,
-                   user_id AS UserId,
-                   tenant_id AS TenantId,
-                   booking_id AS BookingId,
-                   service_type AS ServiceType,
-                   service_id AS ServiceId,
-                   service_name AS ServiceName,
-                   rating AS Rating,
-                   title AS Title,
-                   comment AS Comment,
-                   photos AS Photos,
-                   status AS Status,
-                   moderation_notes AS ModerationNotes,
-                   moderated_by AS ModeratedBy,
-                   moderated_at AS ModeratedAt,
-                   helpful_count AS HelpfulCount,
-                   not_helpful_count AS NotHelpfulCount,
-                   created_at AS CreatedAt,
-                   updated_at AS UpdatedAt
-            FROM reviews
-            WHERE id = @Id";
+            INSERT INTO reviews (
+                id, user_id, tenant_id, booking_id, service_type, service_id, service_name,
+                rating, title, comment, photos, status, helpful_count, not_helpful_count,
+                created_at, updated_at
+            )
+            VALUES (
+                @Id, @UserId, @TenantId, @BookingId, @ServiceType, @ServiceId, @ServiceName,
+                @Rating, @Title, @Comment, @Photos, @Status, @HelpfulCount, @NotHelpfulCount,
+                @CreatedAt, @UpdatedAt
+            )";
+
+        await connection.ExecuteAsync(sql, entity);
+
+        _logger.LogInformation("Review created for booking {BookingId}", entity.BookingId);
+        return entity.Id;
+    }
+
+    public override async Task<bool> UpdateAsync(Review entity, CancellationToken cancellationToken = default)
+    {
+        if (entity == null)
+            throw new ArgumentNullException(nameof(entity));
+
+        entity.UpdatedAt = DefaultProviders.DateTimeProvider.UtcNow;
+
+        using var connection = CreateConnection();
+        
+        const string sql = @"
+            UPDATE reviews SET
+                rating = @Rating,
+                title = @Title,
+                comment = @Comment,
+                status = @Status,
+                moderation_notes = @ModerationNotes,
+                moderated_by = @ModeratedBy,
+                moderated_at = @ModeratedAt,
+                updated_at = @UpdatedAt
+            WHERE id = @Id AND tenant_id = @TenantId";
+
+        var rowsAffected = await connection.ExecuteAsync(sql, entity);
+        
+        if (rowsAffected > 0)
+        {
+            _logger.LogInformation("Review {ReviewId} updated", entity.Id);
+        }
+        
+        return rowsAffected > 0;
+    }
+
+    #endregion
+
+    #region Domain-Specific Methods
+
+    public async Task<Review?> GetByIdAsync(Guid id)
+    {
+        // Use inherited method with default tenant
+        using var connection = CreateConnection();
+        
+        const string sql = @"
+            SELECT * FROM reviews WHERE id = @Id";
 
         return await connection.QueryFirstOrDefaultAsync<Review>(sql, new { Id = id });
     }
@@ -60,26 +104,7 @@ public class ReviewRepository : IReviewRepository
         using var connection = CreateConnection();
         
         const string sql = @"
-            SELECT id AS Id,
-                   user_id AS UserId,
-                   tenant_id AS TenantId,
-                   booking_id AS BookingId,
-                   service_type AS ServiceType,
-                   service_id AS ServiceId,
-                   service_name AS ServiceName,
-                   rating AS Rating,
-                   title AS Title,
-                   comment AS Comment,
-                   photos AS Photos,
-                   status AS Status,
-                   moderation_notes AS ModerationNotes,
-                   moderated_by AS ModeratedBy,
-                   moderated_at AS ModeratedAt,
-                   helpful_count AS HelpfulCount,
-                   not_helpful_count AS NotHelpfulCount,
-                   created_at AS CreatedAt,
-                   updated_at AS UpdatedAt
-            FROM reviews
+            SELECT * FROM reviews
             WHERE user_id = @UserId
             ORDER BY created_at DESC";
 
@@ -154,60 +179,20 @@ public class ReviewRepository : IReviewRepository
 
     public async Task<Review> CreateAsync(Review review)
     {
-        using var connection = CreateConnection();
-        
-        review.Id = Guid.NewGuid();
-        review.CreatedAt = DateTime.UtcNow;
-        review.UpdatedAt = DateTime.UtcNow;
-
-        const string sql = @"
-            INSERT INTO reviews (
-                id, user_id, tenant_id, booking_id, service_type, service_id, service_name,
-                rating, title, comment, photos, status, helpful_count, not_helpful_count,
-                created_at, updated_at
-            )
-            VALUES (
-                @Id, @UserId, @TenantId, @BookingId, @ServiceType, @ServiceId, @ServiceName,
-                @Rating, @Title, @Comment, @Photos, @Status, @HelpfulCount, @NotHelpfulCount,
-                @CreatedAt, @UpdatedAt
-            )";
-
-        await connection.ExecuteAsync(sql, review);
-
-        _logger.LogInformation("Review created for booking {BookingId}", review.BookingId);
+        await AddAsync(review, default);
         return review;
     }
 
     public async Task<Review?> UpdateAsync(Review review)
     {
-        using var connection = CreateConnection();
-        
-        review.UpdatedAt = DateTime.UtcNow;
-
-        const string sql = @"
-            UPDATE reviews SET
-                rating = @Rating,
-                title = @Title,
-                comment = @Comment,
-                status = @Status,
-                moderation_notes = @ModerationNotes,
-                moderated_by = @ModeratedBy,
-                moderated_at = @ModeratedAt,
-                updated_at = @UpdatedAt
-            WHERE id = @Id";
-
-        var rowsAffected = await connection.ExecuteAsync(sql, review);
-        return rowsAffected > 0 ? review : null;
+        var success = await UpdateAsync(review, default);
+        return success ? review : null;
     }
 
     public async Task<bool> DeleteAsync(Guid id)
     {
-        using var connection = CreateConnection();
-        
-        const string sql = "DELETE FROM reviews WHERE id = @Id";
-        var rowsAffected = await connection.ExecuteAsync(sql, new { Id = id });
-
-        return rowsAffected > 0;
+        // Use inherited method
+        return await DeleteAsync(id, default);
     }
 
     public async Task<ReviewVote?> GetVoteAsync(Guid reviewId, Guid userId)
@@ -232,7 +217,7 @@ public class ReviewRepository : IReviewRepository
         using var connection = CreateConnection();
         
         vote.Id = Guid.NewGuid();
-        vote.CreatedAt = DateTime.UtcNow;
+        vote.CreatedAt = DefaultProviders.DateTimeProvider.UtcNow;
 
         const string sql = @"
             INSERT INTO review_votes (id, review_id, user_id, is_helpful, created_at)
@@ -272,8 +257,8 @@ public class ReviewRepository : IReviewRepository
         using var connection = CreateConnection();
         
         response.Id = Guid.NewGuid();
-        response.CreatedAt = DateTime.UtcNow;
-        response.UpdatedAt = DateTime.UtcNow;
+        response.CreatedAt = DefaultProviders.DateTimeProvider.UtcNow;
+        response.UpdatedAt = DefaultProviders.DateTimeProvider.UtcNow;
 
         const string sql = @"
             INSERT INTO review_responses (
@@ -387,5 +372,7 @@ public class ReviewRepository : IReviewRepository
 
         return bookingIds.ToList();
     }
+
+    #endregion
 }
 

@@ -1,7 +1,8 @@
 using Dapper;
 using TenantService.Domain.Entities;
 using Microsoft.Extensions.Logging;
-using Npgsql;
+using SharedKernel.Data;
+using SharedKernel.Utilities;
 using Tenancy;
 
 namespace TenantService.Infrastructure.Repositories;
@@ -23,27 +24,25 @@ public interface ITemplateRepository
 
 public class TemplateRepository : ITemplateRepository
 {
-    private readonly string _connectionString;
+    private readonly IDapperContext _context;
     private readonly ITenantContext _tenantContext;
     private readonly ILogger<TemplateRepository> _logger;
 
     public TemplateRepository(
-        string connectionString,
+        IDapperContext context,
         ITenantContext tenantContext,
         ILogger<TemplateRepository> logger)
     {
-        _connectionString = connectionString;
+        _context = context;
         _tenantContext = tenantContext;
         _logger = logger;
     }
-
-    private NpgsqlConnection CreateConnection() => new NpgsqlConnection(_connectionString);
 
     #region Email Templates
 
     public async Task<EmailTemplate?> GetEmailTemplateByIdAsync(Guid id, Guid tenantId)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         
         const string sql = @"
             SELECT id AS Id,
@@ -65,7 +64,7 @@ public class TemplateRepository : ITemplateRepository
 
     public async Task<List<EmailTemplate>> GetEmailTemplatesAsync(Guid tenantId)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         
         const string sql = @"
             SELECT id AS Id,
@@ -89,7 +88,7 @@ public class TemplateRepository : ITemplateRepository
 
     public async Task<EmailTemplate> CreateEmailTemplateAsync(EmailTemplate template)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         
         template.Id = Guid.NewGuid();
         template.CreatedAt = DateTime.UtcNow;
@@ -113,7 +112,7 @@ public class TemplateRepository : ITemplateRepository
 
     public async Task<EmailTemplate?> UpdateEmailTemplateAsync(EmailTemplate template)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         
         template.UpdatedAt = DateTime.UtcNow;
 
@@ -135,7 +134,7 @@ public class TemplateRepository : ITemplateRepository
 
     public async Task<bool> DeleteEmailTemplateAsync(Guid id, Guid tenantId)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         
         const string sql = "DELETE FROM email_templates WHERE id = @Id AND tenant_id = @TenantId";
         var rowsAffected = await connection.ExecuteAsync(sql, new { Id = id, TenantId = tenantId });
@@ -149,7 +148,7 @@ public class TemplateRepository : ITemplateRepository
 
     public async Task<SMSTemplate?> GetSMSTemplateByIdAsync(Guid id, Guid tenantId)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         
         const string sql = @"
             SELECT id AS Id,
@@ -170,7 +169,7 @@ public class TemplateRepository : ITemplateRepository
 
     public async Task<List<SMSTemplate>> GetSMSTemplatesAsync(Guid tenantId)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         
         const string sql = @"
             SELECT id AS Id,
@@ -193,7 +192,7 @@ public class TemplateRepository : ITemplateRepository
 
     public async Task<SMSTemplate> CreateSMSTemplateAsync(SMSTemplate template)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         
         template.Id = Guid.NewGuid();
         template.CreatedAt = DateTime.UtcNow;
@@ -217,7 +216,7 @@ public class TemplateRepository : ITemplateRepository
 
     public async Task<SMSTemplate?> UpdateSMSTemplateAsync(SMSTemplate template)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         
         template.UpdatedAt = DateTime.UtcNow;
 
@@ -238,7 +237,7 @@ public class TemplateRepository : ITemplateRepository
 
     public async Task<bool> DeleteSMSTemplateAsync(Guid id, Guid tenantId)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         
         const string sql = "DELETE FROM sms_templates WHERE id = @Id AND tenant_id = @TenantId";
         var rowsAffected = await connection.ExecuteAsync(sql, new { Id = id, TenantId = tenantId });

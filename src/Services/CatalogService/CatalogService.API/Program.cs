@@ -3,11 +3,7 @@ using CatalogService.Infrastructure;
 using Identity.Shared;
 using Serilog;
 using Serilog.Formatting.Compact;
-using SharedKernel.Auditing;
-using SharedKernel.Caching;
-using SharedKernel.Middleware;
-using SharedKernel.RateLimiting;
-using SharedKernel.Versioning;
+using SharedKernel.Extensions;
 using Tenancy;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -37,26 +33,10 @@ builder.Services.AddSwaggerGen(c =>
     c.SwaggerDoc("v1", new() { Title = "Catalog Service API", Version = "v1" });
 });
 
-builder.Services.AddHttpContextAccessor();
-
-// Correlation ID
-builder.Services.AddScoped<SharedKernel.Behaviors.ICorrelationIdProvider, SharedKernel.Behaviors.CorrelationIdProvider>();
-
-// Distributed Cache (Redis)
-builder.Services.AddStackExchangeRedisCache(options =>
-{
-    options.Configuration = redisConnection;
-    options.InstanceName = "TravelPortal:";
-});
-builder.Services.AddSingleton<ICacheService, RedisCacheService>();
-
-// Audit Service
-builder.Services.AddScoped<IAuditService, AuditService>();
-
+// Add common infrastructure (Redis, Audit, Versioning, Rate Limiting, etc.)
+builder.Services.AddCommonInfrastructure(redisConnection);
 builder.Services.AddMultiTenancy();
 builder.Services.AddJwtAuthentication(jwtSettings);
-builder.Services.AddApiVersioningConfiguration();
-builder.Services.AddTenantRateLimiting();
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(connectionString);
@@ -104,12 +84,11 @@ else
 
 // Middleware pipeline
 app.UseCors();  // Enable CORS
-app.UseMiddleware<CorrelationIdMiddleware>();
-app.UseMiddleware<GlobalExceptionHandlingMiddleware>();  // Global exception handling
+app.UseCommonMiddleware();  // Adds CorrelationId and GlobalExceptionHandling
+app.UseMultiTenancy();
 
 app.UseHttpsRedirection();
 app.UseRateLimiter();
-app.UseMultiTenancy();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

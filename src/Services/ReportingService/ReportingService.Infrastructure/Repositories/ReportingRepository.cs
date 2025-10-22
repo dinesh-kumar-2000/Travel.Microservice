@@ -1,7 +1,6 @@
 using Dapper;
 using SharedKernel.Caching;
-using System.Data;
-using Npgsql;
+using SharedKernel.Data;
 
 namespace ReportingService.Infrastructure.Repositories;
 
@@ -14,16 +13,14 @@ public interface IReportingRepository
 
 public class ReportingRepository : IReportingRepository
 {
-    private readonly string _connectionString;
+    private readonly IDapperContext _context;
     private readonly ICacheService _cache;
 
-    public ReportingRepository(string connectionString, ICacheService cache)
+    public ReportingRepository(IDapperContext context, ICacheService cache)
     {
-        _connectionString = connectionString;
+        _context = context;
         _cache = cache;
     }
-
-    private IDbConnection CreateConnection() => new NpgsqlConnection(_connectionString);
 
     public async Task<BookingStats> GetBookingStatsAsync(string tenantId, DateTime startDate, DateTime endDate)
     {
@@ -31,7 +28,7 @@ public class ReportingRepository : IReportingRepository
         
         return await _cache.GetOrSetAsync(cacheKey, async () =>
         {
-            using var connection = CreateConnection();
+            using var connection = _context.CreateConnection();
             
             // Use database function
             const string sql = "SELECT * FROM fn_get_booking_stats(@TenantId, @StartDate, @EndDate)";
@@ -51,7 +48,7 @@ public class ReportingRepository : IReportingRepository
         
         return await _cache.GetOrSetAsync(cacheKey, async () =>
         {
-            using var connection = CreateConnection();
+            using var connection = _context.CreateConnection();
             
             // Use database function
             const string sql = "SELECT * FROM fn_get_revenue_by_month(@TenantId, @Year)";
@@ -72,7 +69,7 @@ public class ReportingRepository : IReportingRepository
         
         return await _cache.GetOrSetAsync(cacheKey, async () =>
         {
-            using var connection = CreateConnection();
+            using var connection = _context.CreateConnection();
             
             // Use database function
             const string sql = "SELECT * FROM fn_get_top_destinations(@TenantId, @Limit)";

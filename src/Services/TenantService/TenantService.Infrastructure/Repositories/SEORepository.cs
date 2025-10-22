@@ -1,7 +1,8 @@
 using Dapper;
 using TenantService.Domain.Entities;
 using Microsoft.Extensions.Logging;
-using Npgsql;
+using SharedKernel.Data;
+using SharedKernel.Utilities;
 using Tenancy;
 
 namespace TenantService.Infrastructure.Repositories;
@@ -15,25 +16,23 @@ public interface ISEORepository
 
 public class SEORepository : ISEORepository
 {
-    private readonly string _connectionString;
+    private readonly IDapperContext _context;
     private readonly ITenantContext _tenantContext;
     private readonly ILogger<SEORepository> _logger;
 
     public SEORepository(
-        string connectionString,
+        IDapperContext context,
         ITenantContext tenantContext,
         ILogger<SEORepository> logger)
     {
-        _connectionString = connectionString;
+        _context = context;
         _tenantContext = tenantContext;
         _logger = logger;
     }
 
-    private NpgsqlConnection CreateConnection() => new NpgsqlConnection(_connectionString);
-
     public async Task<SEOSettings?> GetByTenantIdAsync(Guid tenantId)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         
         const string sql = @"
             SELECT id AS Id,
@@ -75,15 +74,15 @@ public class SEORepository : ISEORepository
 
     public async Task<SEOSettings> CreateOrUpdateAsync(SEOSettings settings)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         
         var existing = await GetByTenantIdAsync(settings.TenantId);
 
         if (existing == null)
         {
             settings.Id = Guid.NewGuid();
-            settings.CreatedAt = DateTime.UtcNow;
-            settings.UpdatedAt = DateTime.UtcNow;
+            settings.CreatedAt = DefaultProviders.DateTimeProvider.UtcNow;
+            settings.UpdatedAt = DefaultProviders.DateTimeProvider.UtcNow;
 
             const string insertSql = @"
                 INSERT INTO seo_settings (
@@ -112,7 +111,7 @@ public class SEORepository : ISEORepository
         {
             settings.Id = existing.Id;
             settings.CreatedAt = existing.CreatedAt;
-            settings.UpdatedAt = DateTime.UtcNow;
+            settings.UpdatedAt = DefaultProviders.DateTimeProvider.UtcNow;
 
             const string updateSql = @"
                 UPDATE seo_settings SET
@@ -153,7 +152,7 @@ public class SEORepository : ISEORepository
 
     public async Task<bool> GenerateSitemapAsync(Guid tenantId)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         
         var sitemapUrl = $"https://cdn.example.com/sitemaps/{tenantId}/sitemap.xml";
 
@@ -168,8 +167,8 @@ public class SEORepository : ISEORepository
         {
             TenantId = tenantId,
             SitemapUrl = sitemapUrl,
-            GeneratedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
+            GeneratedAt = DefaultProviders.DateTimeProvider.UtcNow,
+            UpdatedAt = DefaultProviders.DateTimeProvider.UtcNow
         });
 
         if (rowsAffected > 0)
@@ -193,25 +192,23 @@ public interface ISMSTemplateRepository
 
 public class SMSTemplateRepository : ISMSTemplateRepository
 {
-    private readonly string _connectionString;
+    private readonly IDapperContext _context;
     private readonly ITenantContext _tenantContext;
     private readonly ILogger<SMSTemplateRepository> _logger;
 
     public SMSTemplateRepository(
-        string connectionString,
+        IDapperContext context,
         ITenantContext tenantContext,
         ILogger<SMSTemplateRepository> logger)
     {
-        _connectionString = connectionString;
+        _context = context;
         _tenantContext = tenantContext;
         _logger = logger;
     }
 
-    private NpgsqlConnection CreateConnection() => new NpgsqlConnection(_connectionString);
-
     public async Task<SMSTemplate?> GetSMSTemplateByIdAsync(Guid id, Guid tenantId)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         
         const string sql = @"
             SELECT id AS Id,
@@ -232,7 +229,7 @@ public class SMSTemplateRepository : ISMSTemplateRepository
 
     public async Task<List<SMSTemplate>> GetSMSTemplatesAsync(Guid tenantId)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         
         const string sql = @"
             SELECT id AS Id,
@@ -255,11 +252,11 @@ public class SMSTemplateRepository : ISMSTemplateRepository
 
     public async Task<SMSTemplate> CreateSMSTemplateAsync(SMSTemplate template)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         
         template.Id = Guid.NewGuid();
-        template.CreatedAt = DateTime.UtcNow;
-        template.UpdatedAt = DateTime.UtcNow;
+        template.CreatedAt = DefaultProviders.DateTimeProvider.UtcNow;
+        template.UpdatedAt = DefaultProviders.DateTimeProvider.UtcNow;
 
         const string sql = @"
             INSERT INTO sms_templates (
@@ -279,9 +276,9 @@ public class SMSTemplateRepository : ISMSTemplateRepository
 
     public async Task<SMSTemplate?> UpdateSMSTemplateAsync(SMSTemplate template)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         
-        template.UpdatedAt = DateTime.UtcNow;
+        template.UpdatedAt = DefaultProviders.DateTimeProvider.UtcNow;
 
         const string sql = @"
             UPDATE sms_templates SET
@@ -300,7 +297,7 @@ public class SMSTemplateRepository : ISMSTemplateRepository
 
     public async Task<bool> DeleteSMSTemplateAsync(Guid id, Guid tenantId)
     {
-        using var connection = CreateConnection();
+        using var connection = _context.CreateConnection();
         
         const string sql = "DELETE FROM sms_templates WHERE id = @Id AND tenant_id = @TenantId";
         var rowsAffected = await connection.ExecuteAsync(sql, new { Id = id, TenantId = tenantId });

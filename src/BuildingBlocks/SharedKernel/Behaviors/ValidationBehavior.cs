@@ -1,9 +1,12 @@
 using FluentValidation;
 using MediatR;
-using ValidationException = SharedKernel.Exceptions.ValidationException;
 
-namespace IdentityService.Application.Behaviors;
+namespace SharedKernel.Behaviors;
 
+/// <summary>
+/// Centralized validation behavior for MediatR pipeline
+/// Eliminates duplicate ValidationBehavior implementations across services
+/// </summary>
 public class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
     where TRequest : IRequest<TResponse>
 {
@@ -36,7 +39,7 @@ public class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<TReques
 
         if (failures.Any())
         {
-            throw new ValidationException(failures);
+            throw new Exceptions.ValidationException(failures);
         }
 
         return await next();
