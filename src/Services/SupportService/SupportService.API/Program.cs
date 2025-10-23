@@ -41,9 +41,7 @@ builder.Services.AddJwtAuthentication(jwtSettings);
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(connectionString);
 
-builder.Services.AddHealthChecks()
-    .AddNpgSql(connectionString, name: "database", tags: new[] { "db" })
-    .AddRedis(redisConnection, name: "redis", tags: new[] { "cache" });
+// Health checks are already registered by AddCommonInfrastructure()
 
 // CORS Configuration
 builder.Services.AddCors(options =>
