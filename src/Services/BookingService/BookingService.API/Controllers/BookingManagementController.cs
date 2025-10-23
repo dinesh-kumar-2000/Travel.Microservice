@@ -1,5 +1,5 @@
 using BookingService.Application.Commands;
-using BookingService.Contracts.DTOs;
+using BookingService.Application.DTOs;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -26,7 +26,7 @@ public class BookingManagementController : ControllerBase
     [HttpPost("{id}/modify")]
     public async Task<ActionResult<BookingModificationResponseDto>> ModifyBooking(
         Guid id,
-        [FromBody] ModifyBookingRequest request)
+        [FromBody] ModifyBookingRequestDto request)
     {
         var userId = GetUserId();
 
@@ -55,7 +55,7 @@ public class BookingManagementController : ControllerBase
     [HttpPost("{id}/cancel")]
     public async Task<ActionResult<BookingCancellationResponseDto>> CancelBooking(
         Guid id,
-        [FromBody] CancelBookingRequest request)
+        [FromBody] CancelBookingRequestDto request)
     {
         var userId = GetUserId();
 

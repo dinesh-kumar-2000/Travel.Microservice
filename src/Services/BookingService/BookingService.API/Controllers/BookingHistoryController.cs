@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using BookingService.Contracts.Responses.BookingHistory;
+using BookingService.Application.DTOs.Responses.BookingHistory;
 using BookingService.Application.Queries.BookingHistory;
 using MediatR;
 using SharedKernel.Models;
@@ -20,7 +20,7 @@ public class BookingHistoryController : ControllerBase
     }
 
     [HttpGet("user/{userId}")]
-    public async Task<ActionResult<PaginatedResult<BookingHistoryResponse>>> GetUserBookingHistory(
+    public async Task<ActionResult<PaginatedResult<BookingHistoryResponseDto>>> GetUserBookingHistory(
         Guid userId,
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 10,
@@ -41,7 +41,7 @@ public class BookingHistoryController : ControllerBase
     }
 
     [HttpGet("statistics/{userId}")]
-    public async Task<ActionResult<BookingStatisticsResponse>> GetUserBookingStatistics(Guid userId)
+    public async Task<ActionResult<BookingStatisticsResponseDto>> GetUserBookingStatistics(Guid userId)
     {
         var query = new GetBookingStatisticsQuery { UserId = userId };
         var result = await _mediator.Send(query);
@@ -50,7 +50,7 @@ public class BookingHistoryController : ControllerBase
 
     [HttpGet("statistics")]
     [Authorize(Roles = "Admin,TenantAdmin")]
-    public async Task<ActionResult<BookingStatisticsResponse>> GetOverallBookingStatistics(
+    public async Task<ActionResult<BookingStatisticsResponseDto>> GetOverallBookingStatistics(
         [FromQuery] DateTime? startDate = null,
         [FromQuery] DateTime? endDate = null)
     {

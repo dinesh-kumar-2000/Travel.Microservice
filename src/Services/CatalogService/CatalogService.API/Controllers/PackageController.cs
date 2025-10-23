@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using CatalogService.Contracts.Responses.Package;
-using CatalogService.Contracts.Requests.Package;
+using CatalogService.Application.DTOs.Responses.Package;
+using CatalogService.Application.DTOs.Requests.Package;
 using CatalogService.Application.Commands.Package;
 using CatalogService.Application.Queries.Package;
 using MediatR;

@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using CatalogService.Contracts.Responses.Hotel;
-using CatalogService.Contracts.Requests.Hotel;
+using CatalogService.Application.DTOs.Responses.Hotel;
+using CatalogService.Application.DTOs.Requests.Hotel;
 using CatalogService.Application.Commands.Hotel;
 using CatalogService.Application.Queries.Hotel;
 using MediatR;

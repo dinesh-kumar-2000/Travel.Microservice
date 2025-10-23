@@ -1,5 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
-using BookingService.Domain.Repositories;
+using BookingService.Application.Interfaces;
 using BookingService.Infrastructure.Repositories;
 using SharedKernel.Data;
 using System.Reflection;
@@ -15,6 +15,7 @@ public static class DependencyInjection
 
         // Register repositories
         services.AddScoped<IBookingRepository, BookingRepository>();
+        services.AddScoped<IReservationRepository, ReservationRepository>();
 
         return services;
     }

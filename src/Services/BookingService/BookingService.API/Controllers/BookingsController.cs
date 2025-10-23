@@ -1,6 +1,6 @@
 using BookingService.Application.Commands;
 using BookingService.Application.Queries;
-using BookingService.Contracts.DTOs;
+using BookingService.Application.DTOs;
 using Identity.Shared;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -39,8 +39,8 @@ public class BookingsController : ControllerBase
     /// </summary>
     [HttpGet]
     [EnableRateLimiting("fixed")]
-    [ProducesResponseType(typeof(PagedBookingsResponse), StatusCodes.Status200OK)]
-    public async Task<ActionResult<PagedBookingsResponse>> GetAll(
+    [ProducesResponseType(typeof(PagedBookingsResponseDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<PagedBookingsResponseDto>> GetAll(
         [FromQuery] string? status = null,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10)
@@ -66,9 +66,9 @@ public class BookingsController : ControllerBase
     /// </summary>
     [HttpPost]
     [EnableRateLimiting("fixed")]
-    [ProducesResponseType(typeof(CreateBookingResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(CreateBookingResponseDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<CreateBookingResponse>> Create([FromBody] CreateBookingRequest request)
+    public async Task<ActionResult<CreateBookingResponseDto>> Create([FromBody] CreateBookingRequestDto request)
     {
         _logger.LogInformation("Creating booking for customer {CustomerId} in tenant {TenantId}",
             _currentUser.UserId, _currentUser.TenantId);
@@ -128,8 +128,8 @@ public class BookingsController : ControllerBase
     /// </summary>
     [HttpGet("my-bookings")]
     [EnableRateLimiting("fixed")]
-    [ProducesResponseType(typeof(PagedBookingsResponse), StatusCodes.Status200OK)]
-    public async Task<ActionResult<PagedBookingsResponse>> GetMyBookings(
+    [ProducesResponseType(typeof(PagedBookingsResponseDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<PagedBookingsResponseDto>> GetMyBookings(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10)
     {
@@ -153,12 +153,12 @@ public class BookingsController : ControllerBase
     /// </summary>
     [HttpPost("{id}/confirm")]
     [EnableRateLimiting("fixed")]
-    [ProducesResponseType(typeof(ConfirmBookingResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ConfirmBookingResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<ConfirmBookingResponse>> Confirm(
+    public async Task<ActionResult<ConfirmBookingResponseDto>> Confirm(
         string id,
-        [FromBody] ConfirmBookingRequest request)
+        [FromBody] ConfirmBookingRequestDto request)
     {
         _logger.LogInformation("Confirming booking {BookingId} with payment {PaymentId}",
             id, request.PaymentId);
@@ -189,12 +189,12 @@ public class BookingsController : ControllerBase
     /// </summary>
     [HttpPost("{id}/cancel")]
     [EnableRateLimiting("fixed")]
-    [ProducesResponseType(typeof(CancelBookingResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(CancelBookingResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<CancelBookingResponse>> Cancel(
+    public async Task<ActionResult<CancelBookingResponseDto>> Cancel(
         string id,
-        [FromBody] BookingCancelRequest? request = null)
+        [FromBody] BookingCancelRequestDto? request = null)
     {
         _logger.LogInformation("Cancelling booking {BookingId}", id);
 

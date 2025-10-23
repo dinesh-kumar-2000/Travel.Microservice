@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using BookingService.Contracts.Responses.Reservation;
-using BookingService.Contracts.Requests.Reservation;
+using BookingService.Application.DTOs.Responses.Reservation;
+using BookingService.Application.DTOs.Requests.Reservation;
 using BookingService.Application.Commands.Reservation;
 using BookingService.Application.Queries.Reservation;
 using MediatR;
@@ -22,7 +22,7 @@ public class ReservationController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<PaginatedResult<ReservationResponse>>> GetAllReservations(
+    public async Task<ActionResult<PaginatedResult<ReservationResponseDto>>> GetAllReservations(
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 10,
         [FromQuery] string? searchTerm = null)
@@ -39,7 +39,7 @@ public class ReservationController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<ReservationResponse>> GetReservation(Guid id)
+    public async Task<ActionResult<ReservationResponseDto>> GetReservation(Guid id)
     {
         var query = new GetReservationQuery { ReservationId = id };
         var result = await _mediator.Send(query);
@@ -52,8 +52,8 @@ public class ReservationController : ControllerBase
 
     [HttpPost]
     [Authorize(Roles = "Admin,TenantAdmin")]
-    public async Task<ActionResult<ReservationResponse>> CreateReservation(
-        [FromBody] CreateReservationRequest request)
+    public async Task<ActionResult<ReservationResponseDto>> CreateReservation(
+        [FromBody] CreateReservationRequestDto request)
     {
         var command = new CreateReservationCommand
         {
@@ -75,9 +75,9 @@ public class ReservationController : ControllerBase
 
     [HttpPut("{id}")]
     [Authorize(Roles = "Admin,TenantAdmin")]
-    public async Task<ActionResult<ReservationResponse>> UpdateReservation(
+    public async Task<ActionResult<ReservationResponseDto>> UpdateReservation(
         Guid id, 
-        [FromBody] UpdateReservationRequest request)
+        [FromBody] UpdateReservationRequestDto request)
     {
         var command = new UpdateReservationCommand
         {

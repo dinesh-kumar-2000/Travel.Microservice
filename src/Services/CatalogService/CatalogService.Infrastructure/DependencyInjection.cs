@@ -1,6 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
-using CatalogService.Domain.Repositories;
-using CatalogService.Infrastructure.Repositories;
+using CatalogService.Application.Interfaces;
+using CatalogService.Infrastructure.Persistence.Repositories;
 using SharedKernel.Data;
 using System.Reflection;
 

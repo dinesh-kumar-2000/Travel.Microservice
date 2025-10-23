@@ -1,14 +1,14 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using CatalogService.Contracts.Responses.Destination;
-using CatalogService.Contracts.Responses.Hotel;
-using CatalogService.Contracts.Responses.Package;
-using CatalogService.Contracts.Responses.Search;
-using CatalogService.Contracts.Requests.Destination;
-using CatalogService.Contracts.Requests.Hotel;
-using CatalogService.Contracts.Requests.Package;
-using CatalogService.Contracts.Requests.Search;
-using CatalogService.Contracts.DTOs;
+using CatalogService.Application.DTOs.Responses.Destination;
+using CatalogService.Application.DTOs.Responses.Hotel;
+using CatalogService.Application.DTOs.Responses.Package;
+using CatalogService.Application.DTOs.Responses.Search;
+using CatalogService.Application.DTOs.Requests.Destination;
+using CatalogService.Application.DTOs.Requests.Hotel;
+using CatalogService.Application.DTOs.Requests.Package;
+using CatalogService.Application.DTOs.Requests.Search;
+using CatalogService.Application.DTOs;
 using CatalogService.Application.Queries.Destination;
 using CatalogService.Application.Queries.Hotel;
 using CatalogService.Application.Queries.Package;
@@ -48,7 +48,7 @@ public class SearchController : ControllerBase
 
     [HttpPost("hotels")]
     public async Task<ActionResult<PagedHotelsResponse>> SearchHotels(
-        [FromBody] CatalogService.Contracts.Requests.Hotel.SearchHotelsRequest request)
+        [FromBody] CatalogService.Application.DTOs.Requests.Hotel.SearchHotelsRequest request)
     {
         var query = new SearchHotelsQuery
         {
@@ -69,7 +69,7 @@ public class SearchController : ControllerBase
 
     [HttpPost("packages")]
     public async Task<ActionResult<PaginatedResult<PackageResponse>>> SearchPackages(
-        [FromBody] CatalogService.Contracts.Requests.Package.SearchPackagesRequest request)
+        [FromBody] CatalogService.Application.DTOs.Requests.Package.SearchPackagesRequest request)
     {
         var query = new SearchPackagesQuery
         {

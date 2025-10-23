@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
-using CatalogService.Domain.Repositories;
-using CatalogService.Contracts.DTOs;
+using CatalogService.Application.Interfaces;
+using CatalogService.Application.DTOs;
 using SharedKernel.Utilities;
 using Identity.Shared;
 using Tenancy;

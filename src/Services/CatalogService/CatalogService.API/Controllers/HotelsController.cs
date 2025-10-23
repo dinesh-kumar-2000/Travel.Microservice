@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using MediatR;
-using CatalogService.Contracts.DTOs;
+using CatalogService.Application.DTOs;
 using CatalogService.Application.Commands.Hotel;
 using CatalogService.Application.Queries.Hotel;
 using SharedKernel.Models;
