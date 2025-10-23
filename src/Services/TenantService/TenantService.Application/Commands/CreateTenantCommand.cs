@@ -32,14 +32,14 @@ public class CreateTenantCommandHandler : IRequestHandler<CreateTenantCommand, T
         if (await _repository.SubdomainExistsAsync(request.Subdomain, cancellationToken))
             throw new ValidationException("Subdomain", "Subdomain already exists");
 
-        var tenantId = UlidGenerator.Generate();
+        var tenantId = Guid.NewGuid().ToString();
         var tenant = Tenant.Create(tenantId, request.Name, request.Subdomain, request.ContactEmail, request.ContactPhone);
 
         await _repository.AddAsync(tenant, cancellationToken);
 
         await _eventBus.PublishAsync(new TenantCreatedEvent
         {
-            TenantId = tenantId,
+            TenantId = Guid.Parse(tenantId),
             Name = request.Name,
             Subdomain = request.Subdomain
         }, cancellationToken);

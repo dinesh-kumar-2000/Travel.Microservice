@@ -128,6 +128,22 @@ public class UserRepository : TenantBaseRepository<User, string>, IUserRepositor
         return await connection.QueryFirstOrDefaultAsync<User>(sql, new { Email = email, TenantId = tenantId });
     }
 
+    public async Task<User?> GetByEmailAsync(string email)
+    {
+        if (string.IsNullOrEmpty(email))
+            throw new ArgumentNullException(nameof(email));
+
+        using var connection = CreateConnection();
+        
+        const string sql = @"
+            SELECT * FROM users 
+            WHERE LOWER(email) = LOWER(@Email) 
+            AND is_deleted = false
+            LIMIT 1";
+
+        return await connection.QueryFirstOrDefaultAsync<User>(sql, new { Email = email });
+    }
+
     public async Task<bool> EmailExistsAsync(string email, string tenantId, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(email))

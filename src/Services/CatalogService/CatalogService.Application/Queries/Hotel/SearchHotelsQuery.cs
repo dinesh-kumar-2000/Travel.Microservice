@@ -6,16 +6,23 @@ using Tenancy;
 
 namespace CatalogService.Application.Queries.Hotel;
 
-public record SearchHotelsQuery(
-    string? City,
-    string? Country,
-    decimal? MinPrice,
-    decimal? MaxPrice,
-    int? StarRating,
-    string[]? Amenities,
-    int Page,
-    int PageSize
-) : IRequest<PagedHotelsResponse>;
+public class SearchHotelsQuery : IRequest<PagedHotelsResponse>
+{
+    public string? City { get; set; }
+    public string? Country { get; set; }
+    public string? SearchTerm { get; set; }
+    public string? HotelCategory { get; set; }
+    public decimal? MinPrice { get; set; }
+    public decimal? MaxPrice { get; set; }
+    public decimal? MaxPricePerNight { get; set; }
+    public int? MinStarRating { get; set; }
+    public DateTime? CheckInDate { get; set; }
+    public DateTime? CheckOutDate { get; set; }
+    public int? Guests { get; set; }
+    public string[]? Amenities { get; set; }
+    public int PageNumber { get; set; } = 1;
+    public int PageSize { get; set; } = 10;
+}
 
 public class SearchHotelsQueryHandler : IRequestHandler<SearchHotelsQuery, PagedHotelsResponse>
 {
@@ -43,9 +50,9 @@ public class SearchHotelsQueryHandler : IRequestHandler<SearchHotelsQuery, Paged
             request.Country,
             request.MinPrice,
             request.MaxPrice,
-            request.StarRating,
-            request.Amenities,
-            request.Page,
+            null, // starRating
+            null, // amenities
+            request.PageNumber,
             request.PageSize,
             cancellationToken);
 
@@ -78,7 +85,7 @@ public class SearchHotelsQueryHandler : IRequestHandler<SearchHotelsQuery, Paged
         return new PagedHotelsResponse(
             hotelDtos,
             totalCount,
-            request.Page,
+            request.PageNumber,
             request.PageSize,
             totalPages
         );

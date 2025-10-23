@@ -16,7 +16,6 @@ public static class DependencyInjection
         // Register repositories
         services.AddScoped<IPackageRepository, PackageRepository>();
         services.AddScoped<IHotelRepository, HotelRepository>();
-        services.AddScoped<IFlightRepository, FlightRepository>();
         services.AddScoped<ITourRepository, TourRepository>();
         
         return services;

@@ -108,16 +108,17 @@ public class HotelsController : ControllerBase
         _logger.LogInformation("Searching hotels - City: {City}, Country: {Country}", 
             request.City, request.Country);
 
-        var query = new SearchHotelsQuery(
-            request.City,
-            request.Country,
-            request.MinPrice,
-            request.MaxPrice,
-            request.StarRating,
-            request.Amenities,
-            request.Page,
-            request.PageSize
-        );
+        var query = new SearchHotelsQuery
+        {
+            City = request.City,
+            Country = request.Country,
+            MinPrice = request.MinPrice,
+            MaxPrice = request.MaxPrice,
+            MinStarRating = request.StarRating,
+            Amenities = request.Amenities,
+            PageNumber = request.Page,
+            PageSize = request.PageSize
+        };
 
         var result = await _mediator.Send(query);
 

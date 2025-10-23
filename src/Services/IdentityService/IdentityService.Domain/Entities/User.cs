@@ -15,6 +15,9 @@ public class User : TenantEntity<string>
     public DateTime? LastLoginAt { get; private set; }
     public string? RefreshToken { get; private set; }
     public DateTime? RefreshTokenExpiresAt { get; private set; }
+    public DateTime? LastPasswordChange { get; private set; }
+    public DateTime? LockedUntil { get; private set; }
+    public int FailedLoginAttempts { get; private set; }
 
     private readonly List<UserRole> _userRoles = new();
     public IReadOnlyCollection<UserRole> UserRoles => _userRoles.AsReadOnly();
@@ -80,6 +83,37 @@ public class User : TenantEntity<string>
     public void Activate()
     {
         IsActive = true;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void UpdateLastPasswordChange()
+    {
+        LastPasswordChange = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void LockAccount(DateTime lockedUntil)
+    {
+        LockedUntil = lockedUntil;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void UnlockAccount()
+    {
+        LockedUntil = null;
+        FailedLoginAttempts = 0;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void IncrementFailedLoginAttempts()
+    {
+        FailedLoginAttempts++;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void ResetFailedLoginAttempts()
+    {
+        FailedLoginAttempts = 0;
         UpdatedAt = DateTime.UtcNow;
     }
 }

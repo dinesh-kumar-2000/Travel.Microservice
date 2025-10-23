@@ -86,6 +86,28 @@ public class Hotel : TenantEntity<string>
         UpdatedAt = DateTime.UtcNow;
     }
 
+    public void UpdateDetails(string name, string description, string location, string address,
+        string city, string country, int starRating, decimal pricePerNight, int totalRooms)
+    {
+        Name = name;
+        Description = description;
+        Location = location;
+        Address = address;
+        City = city;
+        Country = country;
+        StarRating = starRating;
+        PricePerNight = pricePerNight;
+        TotalRooms = totalRooms;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void UpdateContactInfo(string email, string? phone)
+    {
+        ContactEmail = email;
+        ContactPhone = phone;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
     public void Activate()
     {
         Status = HotelStatus.Active;

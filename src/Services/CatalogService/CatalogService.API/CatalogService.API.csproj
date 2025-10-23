@@ -12,6 +12,7 @@
   <ItemGroup>
     <ProjectReference Include="..\CatalogService.Application\CatalogService.Application.csproj" />
     <ProjectReference Include="..\CatalogService.Infrastructure\CatalogService.Infrastructure.csproj" />
+    <ProjectReference Include="..\CatalogService.Contracts\CatalogService.Contracts.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\Tenancy\Tenancy.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\Identity.Shared\Identity.Shared.csproj" />
   </ItemGroup>

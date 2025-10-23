@@ -11,7 +11,7 @@ public class Tenant : BaseEntity<string>
     public string ContactPhone { get; private set; } = string.Empty;
     public TenantStatus Status { get; private set; } = TenantStatus.Active;
     public SubscriptionTier Tier { get; private set; } = SubscriptionTier.Basic;
-    public TenantConfiguration Configuration { get; private set; } = new();
+    public TenantConfiguration Configuration { get; private set; } = TenantConfiguration.Default();
     public DateTime? SubscriptionExpiresAt { get; private set; }
 
     private Tenant() { }
@@ -70,14 +70,4 @@ public enum SubscriptionTier
     Enterprise
 }
 
-public class TenantConfiguration
-{
-    public string PrimaryColor { get; set; } = "#3B82F6";
-    public string SecondaryColor { get; set; } = "#8B5CF6";
-    public string LogoUrl { get; set; } = string.Empty;
-    public int MaxUsers { get; set; } = 10;
-    public int MaxBookingsPerMonth { get; set; } = 100;
-    public bool AllowCustomBranding { get; set; } = false;
-    public Dictionary<string, string> CustomSettings { get; set; } = new();
-}
 

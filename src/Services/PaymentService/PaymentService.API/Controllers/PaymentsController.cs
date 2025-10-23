@@ -67,7 +67,7 @@ public class PaymentsController : ControllerBase
             }
 
             // Create payment record
-            var paymentId = UlidGenerator.Generate();
+            var paymentId = Guid.NewGuid().ToString();
             var payment = Payment.Create(
                 paymentId,
                 _currentUser.TenantId!,

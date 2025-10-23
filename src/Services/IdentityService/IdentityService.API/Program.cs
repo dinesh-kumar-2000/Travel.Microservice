@@ -2,10 +2,12 @@ using EventBus.Extensions;
 using Identity.Shared;
 using IdentityService.Application;
 using IdentityService.Infrastructure;
+using IdentityService.Infrastructure.Services;
 using Microsoft.AspNetCore.Mvc;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
+using SendGrid;
 using Serilog;
 using Serilog.Formatting.Compact;
 using SharedKernel.Auditing;
@@ -14,16 +16,21 @@ using SharedKernel.Compression;
 using SharedKernel.Middleware;
 using SharedKernel.RateLimiting;
 using SharedKernel.Versioning;
+using SharedKernel.Logging;
+using SharedKernel.Tracing;
+using SharedKernel.HealthChecks;
 using Tenancy;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Serilog Configuration
-Log.Logger = new LoggerConfiguration()
-    .WriteTo.Console(new CompactJsonFormatter())
-    .Enrich.WithProperty("Service", "IdentityService")
-    .Enrich.FromLogContext()
-    .CreateLogger();
+var environment = builder.Environment.EnvironmentName;
+Log.Logger = environment == "Development" 
+    ? LoggingConfiguration.ConfigureDevelopmentLogging("IdentityService").CreateLogger()
+    : LoggingConfiguration.ConfigureProductionLogging(
+        "IdentityService",
+        builder.Configuration["Elasticsearch:Url"],
+        builder.Configuration["Seq:Url"]).CreateLogger();
 
 builder.Host.UseSerilog();
 
@@ -115,36 +122,41 @@ builder.Services.AddInfrastructure(connectionString);
 builder.Services.AddEventBus(rabbitMqHost, rabbitMqUsername, rabbitMqPassword);
 
 // OpenTelemetry Tracing + Prometheus Metrics
-builder.Services.AddOpenTelemetry()
-    .WithTracing(tracerProviderBuilder =>
-    {
-        tracerProviderBuilder
-            .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("IdentityService"))
-            .AddAspNetCoreInstrumentation()
-            .AddHttpClientInstrumentation()
-            .AddJaegerExporter(options =>
-            {
-                options.AgentHost = builder.Configuration["Jaeger:Host"] ?? "localhost";
-                options.AgentPort = int.Parse(builder.Configuration["Jaeger:Port"] ?? "6831");
-            });
-    })
-    .WithMetrics(metricsProviderBuilder =>
-    {
-        metricsProviderBuilder
-            .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("IdentityService"))
-            .AddAspNetCoreInstrumentation()
-            .AddHttpClientInstrumentation()
-            .AddRuntimeInstrumentation()
-            .AddProcessInstrumentation()
-            .AddPrometheusExporter();
-    });
+builder.Services.AddOpenTelemetryTracing(
+    "IdentityService",
+    "1.0.0",
+    builder.Configuration["Jaeger:Host"],
+    builder.Configuration["Zipkin:Url"],
+    environment == "Development");
 
 // Health Checks
-builder.Services.AddHealthChecks()
-    .AddNpgSql(connectionString, name: "database", tags: new[] { "db" })
-    .AddRabbitMQ(rabbitConnectionString: $"amqp://{rabbitMqUsername}:{rabbitMqPassword}@{rabbitMqHost}",
-        name: "rabbitmq", tags: new[] { "messaging" })
-    .AddRedis(redisConnection, name: "redis", tags: new[] { "cache" });
+builder.Services.AddComprehensiveHealthChecks(redisConnection);
+
+// Email Service (SendGrid)
+builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("Email"));
+builder.Services.AddHttpClient<ISendGridClient, SendGridClient>(client =>
+{
+    var apiKey = builder.Configuration["Email:SendGridApiKey"];
+    client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiKey);
+});
+builder.Services.AddScoped<IEmailService, SendGridEmailService>();
+
+// Social Login Services
+builder.Services.Configure<GoogleOAuthSettings>(builder.Configuration.GetSection("GoogleOAuth"));
+builder.Services.AddHttpClient<GoogleOAuthService>();
+builder.Services.AddScoped<ISocialLoginService, GoogleOAuthService>();
+
+// Password Reset Service
+builder.Services.Configure<PasswordResetSettings>(builder.Configuration.GetSection("PasswordReset"));
+builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
+
+// Account Lockout Service
+builder.Services.Configure<AccountLockoutSettings>(builder.Configuration.GetSection("AccountLockout"));
+builder.Services.AddScoped<IAccountLockoutService, AccountLockoutService>();
+
+// Security Audit Service
+builder.Services.Configure<SecurityAuditSettings>(builder.Configuration.GetSection("SecurityAudit"));
+builder.Services.AddScoped<ISecurityAuditService, SecurityAuditService>();
 
 // CORS Configuration
 builder.Services.AddCors(options =>
@@ -189,6 +201,7 @@ app.UseCors();
 
 // Custom Middleware from SharedKernel
 app.UseMiddleware<CorrelationIdMiddleware>();
+app.UseMiddleware<SharedKernel.Logging.RequestLoggingMiddleware>();
 app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
 
 app.UseHttpsRedirection();

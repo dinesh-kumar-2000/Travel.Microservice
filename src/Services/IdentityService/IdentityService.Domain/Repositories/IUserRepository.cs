@@ -11,6 +11,7 @@ public interface IUserRepository : IRepository<User, string>
 {
     // User Management
     Task<User?> GetByEmailAsync(string email, string tenantId, CancellationToken cancellationToken = default);
+    Task<User?> GetByEmailAsync(string email);
     Task<bool> EmailExistsAsync(string email, string tenantId, CancellationToken cancellationToken = default);
     
     // Role Management

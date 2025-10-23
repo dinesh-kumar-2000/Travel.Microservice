@@ -1,6 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
 using NotificationService.Domain.Repositories;
-using NotificationService.Infrastructure.Repositories;
 using SharedKernel.Data;
 using System.Reflection;
 
@@ -14,7 +13,7 @@ public static class DependencyInjection
         services.AddSingleton<IDapperContext>(sp => new DapperContext(connectionString));
 
         // Register repositories
-        services.AddScoped<ISupportRepository, SupportRepository>();
+        // TODO: Add repository implementations for Support entities when created
         
         return services;
     }

@@ -18,12 +18,3 @@ public record CancelBookingCommand(
     string Reason
 ) : IRequest<BookingCancellationResponseDto>;
 
-public record AddLoyaltyPointsCommand(
-    Guid UserId,
-    Guid TenantId,
-    int Points,
-    string Description,
-    string ReferenceType,
-    Guid ReferenceId
-) : IRequest<bool>;
-

@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\BuildingBlocks\SharedKernel\SharedKernel.csproj" />
+    <ProjectReference Include="..\IdentityService.Contracts\IdentityService.Contracts.csproj" />
   </ItemGroup>
 
 </Project>

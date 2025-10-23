@@ -8,23 +8,26 @@ using Tenancy;
 
 namespace CatalogService.Application.Commands.Hotel;
 
-public record CreateHotelCommand(
-    string Name,
-    string Description,
-    string Location,
-    string Address,
-    string City,
-    string Country,
-    int StarRating,
-    decimal PricePerNight,
-    int TotalRooms,
-    string[]? Amenities,
-    string[]? Images,
-    double? Latitude,
-    double? Longitude,
-    string? ContactEmail,
-    string? ContactPhone
-) : IRequest<HotelDto>;
+public class CreateHotelCommand : IRequest<HotelDto>
+{
+    public string Name { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string Location { get; set; } = string.Empty;
+    public string Address { get; set; } = string.Empty;
+    public string City { get; set; } = string.Empty;
+    public string Country { get; set; } = string.Empty;
+    public string? HotelCategory { get; set; }
+    public int StarRating { get; set; }
+    public decimal PricePerNight { get; set; }
+    public int TotalRooms { get; set; }
+    public string[]? Amenities { get; set; }
+    public string[]? Images { get; set; }
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
+    public string? ContactEmail { get; set; }
+    public string? ContactPhone { get; set; }
+    public string? ContactInfo { get; set; }
+}
 
 public class CreateHotelCommandHandler : IRequestHandler<CreateHotelCommand, HotelDto>
 {
@@ -70,6 +73,9 @@ public class CreateHotelCommandHandler : IRequestHandler<CreateHotelCommand, Hot
 
         if (request.Latitude.HasValue && request.Longitude.HasValue)
             hotel.SetLocation(request.Latitude.Value, request.Longitude.Value);
+
+        if (!string.IsNullOrEmpty(request.ContactEmail))
+            hotel.UpdateContactInfo(request.ContactEmail, request.ContactPhone);
 
         await _repository.AddAsync(hotel, cancellationToken);
 

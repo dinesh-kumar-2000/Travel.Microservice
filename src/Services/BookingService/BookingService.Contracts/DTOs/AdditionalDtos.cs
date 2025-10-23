@@ -1,13 +1,5 @@
 namespace BookingService.Contracts.DTOs;
 
-public record LoyaltyTierDto(
-    Guid Id,
-    string TierName,
-    int MinPoints,
-    decimal DiscountPercentage,
-    Dictionary<string, object>? Benefits
-);
-
 public record RatingSummaryDto(
     Guid ServiceId,
     string ServiceType,

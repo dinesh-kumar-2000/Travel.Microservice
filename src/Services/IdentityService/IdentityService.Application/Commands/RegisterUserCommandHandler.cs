@@ -38,8 +38,8 @@ public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, R
         var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
 
         // Create user
-        var userId = UlidGenerator.Generate();
-        var user = User.Create(
+        var userId = Guid.NewGuid().ToString();
+        var user = Domain.Entities.User.Create(
             userId,
             request.TenantId,
             request.Email,

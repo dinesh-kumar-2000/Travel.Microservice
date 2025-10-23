@@ -6,6 +6,7 @@ using SharedKernel.Caching;
 using SharedKernel.RateLimiting;
 using SharedKernel.Versioning;
 using SharedKernel.Utilities;
+using SharedKernel.HealthChecks;
 
 namespace SharedKernel.Extensions;
 
@@ -51,6 +52,9 @@ public static class ServiceCollectionExtensions
 
         // Rate Limiting
         services.AddTenantRateLimiting();
+
+        // Health Checks
+        services.AddComprehensiveHealthChecks(redisConnection);
 
         return services;
     }

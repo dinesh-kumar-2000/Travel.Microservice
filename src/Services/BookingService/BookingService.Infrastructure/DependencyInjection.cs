@@ -15,8 +15,6 @@ public static class DependencyInjection
 
         // Register repositories
         services.AddScoped<IBookingRepository, BookingRepository>();
-        services.AddScoped<IReviewRepository, ReviewRepository>();
-        services.AddScoped<ILoyaltyRepository, LoyaltyRepository>();
 
         return services;
     }

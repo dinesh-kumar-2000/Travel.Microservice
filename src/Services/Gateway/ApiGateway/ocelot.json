@@ -1,16 +1,20 @@
 {
   "Routes": [
     {
-      "DownstreamPathTemplate": "/api/{everything}",
+      "DownstreamPathTemplate": "/api/v{version}/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "localhost",
-          "Port": 5001
+          "Host": "identityservice-api",
+          "Port": 8080
         }
       ],
-      "UpstreamPathTemplate": "/identity/{everything}",
+      "UpstreamPathTemplate": "/identity/v{version}/{everything}",
       "UpstreamHttpMethod": ["Get", "Post", "Put", "Delete"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "",
+        "AllowedScopes": []
+      },
       "RateLimitOptions": {
         "ClientWhitelist": [],
         "EnableRateLimiting": true,
@@ -25,16 +29,20 @@
       }
     },
     {
-      "DownstreamPathTemplate": "/api/{everything}",
+      "DownstreamPathTemplate": "/api/v{version}/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "localhost",
-          "Port": 5002
+          "Host": "tenantservice-api",
+          "Port": 8080
         }
       ],
-      "UpstreamPathTemplate": "/tenants/{everything}",
+      "UpstreamPathTemplate": "/tenants/v{version}/{everything}",
       "UpstreamHttpMethod": ["Get", "Post", "Put", "Delete"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "",
+        "AllowedScopes": []
+      },
       "RateLimitOptions": {
         "ClientWhitelist": [],
         "EnableRateLimiting": true,
@@ -49,16 +57,20 @@
       }
     },
     {
-      "DownstreamPathTemplate": "/api/{everything}",
+      "DownstreamPathTemplate": "/api/v{version}/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "localhost",
-          "Port": 5003
+          "Host": "catalogservice-api",
+          "Port": 8080
         }
       ],
-      "UpstreamPathTemplate": "/catalog/{everything}",
+      "UpstreamPathTemplate": "/catalog/v{version}/{everything}",
       "UpstreamHttpMethod": ["Get", "Post", "Put", "Delete"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "",
+        "AllowedScopes": []
+      },
       "RateLimitOptions": {
         "ClientWhitelist": [],
         "EnableRateLimiting": true,
@@ -73,16 +85,20 @@
       }
     },
     {
-      "DownstreamPathTemplate": "/api/{everything}",
+      "DownstreamPathTemplate": "/api/v{version}/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "localhost",
-          "Port": 5004
+          "Host": "bookingservice-api",
+          "Port": 8080
         }
       ],
-      "UpstreamPathTemplate": "/bookings/{everything}",
+      "UpstreamPathTemplate": "/bookings/v{version}/{everything}",
       "UpstreamHttpMethod": ["Get", "Post", "Put", "Delete"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "",
+        "AllowedScopes": []
+      },
       "RateLimitOptions": {
         "ClientWhitelist": [],
         "EnableRateLimiting": true,
@@ -97,16 +113,20 @@
       }
     },
     {
-      "DownstreamPathTemplate": "/api/{everything}",
+      "DownstreamPathTemplate": "/api/v{version}/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "localhost",
-          "Port": 5005
+          "Host": "paymentservice-api",
+          "Port": 8080
         }
       ],
-      "UpstreamPathTemplate": "/payments/{everything}",
+      "UpstreamPathTemplate": "/payments/v{version}/{everything}",
       "UpstreamHttpMethod": ["Get", "Post", "Put", "Delete"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "",
+        "AllowedScopes": []
+      },
       "RateLimitOptions": {
         "ClientWhitelist": [],
         "EnableRateLimiting": true,
@@ -121,16 +141,20 @@
       }
     },
     {
-      "DownstreamPathTemplate": "/api/{everything}",
+      "DownstreamPathTemplate": "/api/v{version}/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "localhost",
-          "Port": 5006
+          "Host": "notificationservice-api",
+          "Port": 8080
         }
       ],
-      "UpstreamPathTemplate": "/notifications/{everything}",
+      "UpstreamPathTemplate": "/notifications/v{version}/{everything}",
       "UpstreamHttpMethod": ["Get", "Post", "Put", "Delete"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "",
+        "AllowedScopes": []
+      },
       "RateLimitOptions": {
         "ClientWhitelist": [],
         "EnableRateLimiting": true,
@@ -145,16 +169,20 @@
       }
     },
     {
-      "DownstreamPathTemplate": "/api/{everything}",
+      "DownstreamPathTemplate": "/api/v{version}/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "localhost",
-          "Port": 5007
+          "Host": "reportingservice-api",
+          "Port": 8080
         }
       ],
-      "UpstreamPathTemplate": "/reports/{everything}",
+      "UpstreamPathTemplate": "/reports/v{version}/{everything}",
       "UpstreamHttpMethod": ["Get", "Post", "Put", "Delete"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "",
+        "AllowedScopes": []
+      },
       "RateLimitOptions": {
         "ClientWhitelist": [],
         "EnableRateLimiting": true,

@@ -11,10 +11,14 @@
     <PackageReference Include="DbUp" />
     <PackageReference Include="dbup-postgresql" />
     <PackageReference Include="BCrypt.Net-Next" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" />
+    <PackageReference Include="SendGrid" />
+    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\IdentityService.Domain\IdentityService.Domain.csproj" />
+    <ProjectReference Include="..\IdentityService.Contracts\IdentityService.Contracts.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\Tenancy\Tenancy.csproj" />
   </ItemGroup>
 

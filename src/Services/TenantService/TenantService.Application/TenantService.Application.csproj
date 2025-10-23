@@ -6,10 +6,13 @@
     <PackageReference Include="MediatR" />
     <PackageReference Include="FluentValidation" />
     <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
+    <PackageReference Include="AutoMapper" />
+    <PackageReference Include="AutoMapper.Extensions.Microsoft.DependencyInjection" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\TenantService.Domain\TenantService.Domain.csproj" />
     <ProjectReference Include="..\TenantService.Contracts\TenantService.Contracts.csproj" />
+    <ProjectReference Include="..\..\IdentityService\IdentityService.Domain\IdentityService.Domain.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\EventBus\EventBus.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\SharedKernel\SharedKernel.csproj" />
   </ItemGroup>

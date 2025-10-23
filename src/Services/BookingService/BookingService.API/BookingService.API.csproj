@@ -12,6 +12,7 @@
   <ItemGroup>
     <ProjectReference Include="..\BookingService.Application\BookingService.Application.csproj" />
     <ProjectReference Include="..\BookingService.Infrastructure\BookingService.Infrastructure.csproj" />
+    <ProjectReference Include="..\BookingService.Contracts\BookingService.Contracts.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\Tenancy\Tenancy.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\Identity.Shared\Identity.Shared.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\EventBus\EventBus.csproj" />

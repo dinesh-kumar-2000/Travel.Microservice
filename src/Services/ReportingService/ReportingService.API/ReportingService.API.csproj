@@ -12,6 +12,7 @@
   <ItemGroup>
     <ProjectReference Include="..\ReportingService.Application\ReportingService.Application.csproj" />
     <ProjectReference Include="..\ReportingService.Infrastructure\ReportingService.Infrastructure.csproj" />
+    <ProjectReference Include="..\ReportingService.Contracts\ReportingService.Contracts.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\Tenancy\Tenancy.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\Identity.Shared\Identity.Shared.csproj" />
   </ItemGroup>

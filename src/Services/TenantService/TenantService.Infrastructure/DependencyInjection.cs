@@ -1,6 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
 using TenantService.Domain.Repositories;
+using TenantService.Domain.Interfaces;
 using TenantService.Infrastructure.Repositories;
+using TenantService.Infrastructure.Services;
 using SharedKernel.Data;
 using System.Reflection;
 
@@ -15,10 +17,13 @@ public static class DependencyInjection
 
         // Register repositories
         services.AddScoped<ITenantRepository, TenantRepository>();
-        services.AddScoped<ILandingPageRepository, LandingPageRepository>();
-        services.AddScoped<ISEORepository, SEORepository>();
-        services.AddScoped<ITemplateRepository, TemplateRepository>();
-        services.AddScoped<ICMSRepository, CMSRepository>();
+        services.AddScoped<ITenantConfigurationRepository, TenantConfigurationRepository>();
+        services.AddScoped<ITenantAdminRepository, TenantAdminRepository>();
+        
+        // Register services
+        services.AddScoped<SubdomainValidator>();
+        services.AddScoped<TenantResolver>();
+        services.AddScoped<TenantProvisioningService>();
         
         return services;
     }
