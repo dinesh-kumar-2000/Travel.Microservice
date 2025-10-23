@@ -1,7 +1,7 @@
 using MediatR;
 using Microsoft.Extensions.Logging;
 using TenantService.Application.Commands.TenantAdmin;
-using TenantService.Domain.Interfaces;
+using TenantService.Application.Interfaces;
 using SharedKernel.Exceptions;
 
 namespace TenantService.Application.Handlers.TenantAdmin;

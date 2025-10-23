@@ -3,9 +3,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using IdentityService.Application.Queries.User;
 using IdentityService.Application.Commands.User;
-using IdentityService.Contracts.DTOs;
-using IdentityService.Contracts.Requests.User;
-using IdentityService.Contracts.Responses.User;
+using IdentityService.Application.DTOs;
+using IdentityService.Application.DTOs.Requests.User;
+using IdentityService.Application.DTOs.Responses.User;
 using Identity.Shared;
 using SharedKernel.Models;
 

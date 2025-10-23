@@ -1,6 +1,6 @@
 using IdentityService.Application.Commands;
 using IdentityService.Application.Queries;
-using IdentityService.Contracts.DTOs;
+using IdentityService.Application.DTOs;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

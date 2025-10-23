@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using SharedKernel.Models;
-using IdentityService.Contracts.Requests.Role;
-using IdentityService.Contracts.Responses.Role;
+using IdentityService.Application.DTOs.Requests.Role;
+using IdentityService.Application.DTOs.Responses.Role;
 using IdentityService.Application.Commands.Role;
 using IdentityService.Application.Queries.Role;
 using MediatR;

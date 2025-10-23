@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using NotificationService.Contracts.Responses.Email;
-using NotificationService.Contracts.Requests.Email;
+using NotificationService.Application.DTOs.Responses.Email;
+using NotificationService.Application.DTOs.Requests.Email;
 using NotificationService.Application.Commands.Email;
 using NotificationService.Application.Queries.Email;
 using MediatR;

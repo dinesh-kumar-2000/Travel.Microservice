@@ -1,5 +1,5 @@
 using Microsoft.Extensions.Logging;
-using TenantService.Domain.Repositories;
+using TenantService.Application.Interfaces;
 
 namespace TenantService.Infrastructure.Services;
 

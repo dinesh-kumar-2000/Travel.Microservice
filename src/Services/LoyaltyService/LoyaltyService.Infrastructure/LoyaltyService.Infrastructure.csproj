@@ -16,6 +16,7 @@
   <ItemGroup>
     <ProjectReference Include="..\LoyaltyService.Contracts\LoyaltyService.Contracts.csproj" />
     <ProjectReference Include="..\LoyaltyService.Domain\LoyaltyService.Domain.csproj" />
+    <ProjectReference Include="..\LoyaltyService.Application\LoyaltyService.Application.csproj" />
     <ProjectReference Include="..\..\BuildingBlocks\SharedKernel\SharedKernel.csproj" />
     <ProjectReference Include="..\..\BuildingBlocks\EventBus\EventBus.csproj" />
   </ItemGroup>

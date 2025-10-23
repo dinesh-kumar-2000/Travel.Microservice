@@ -1,5 +1,5 @@
-using IdentityService.Domain.Repositories;
-using IdentityService.Infrastructure.Repositories;
+using IdentityService.Application.Interfaces;
+using IdentityService.Infrastructure.Persistence.Repositories;
 using Microsoft.Extensions.DependencyInjection;
 using SharedKernel.Data;
 using System.Reflection;

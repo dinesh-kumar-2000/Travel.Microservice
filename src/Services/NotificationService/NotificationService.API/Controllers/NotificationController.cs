@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using NotificationService.Contracts.Responses.Notification;
-using NotificationService.Contracts.Requests.Notification;
+using NotificationService.Application.DTOs.Responses.Notification;
+using NotificationService.Application.DTOs.Requests.Notification;
 using NotificationService.Application.Commands.Notification;
 using NotificationService.Application.Queries.Notification;
 using MediatR;

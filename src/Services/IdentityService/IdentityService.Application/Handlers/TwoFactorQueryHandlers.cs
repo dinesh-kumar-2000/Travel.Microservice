@@ -1,6 +1,6 @@
 using IdentityService.Application.Queries;
-using IdentityService.Contracts.DTOs;
-using IdentityService.Domain.Repositories;
+using IdentityService.Application.DTOs;
+using IdentityService.Application.Interfaces;
 using MediatR;
 using Microsoft.Extensions.Logging;
 

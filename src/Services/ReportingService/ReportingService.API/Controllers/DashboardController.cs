@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using ReportingService.Contracts.Responses.Dashboard;
-using ReportingService.Contracts.Requests.Dashboard;
+using ReportingService.Application.DTOs.Responses.Dashboard;
+using ReportingService.Application.DTOs.Requests.Dashboard;
 using ReportingService.Application.Commands.Dashboard;
 using ReportingService.Application.Queries.Dashboard;
 using MediatR;

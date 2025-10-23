@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using ReportingService.Contracts.Responses.Analytics;
-using ReportingService.Contracts.Requests.Analytics;
+using ReportingService.Application.DTOs.Responses.Analytics;
+using ReportingService.Application.DTOs.Requests.Analytics;
 using ReportingService.Application.Commands.Analytics;
 using ReportingService.Application.Queries.Analytics;
 using MediatR;

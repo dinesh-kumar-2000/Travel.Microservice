@@ -1,4 +1,4 @@
-using IdentityService.Contracts.Responses.Role;
+using IdentityService.Application.DTOs.Responses.Role;
 using IdentityService.Application.Commands.Role;
 using IdentityService.Domain.Entities;
 

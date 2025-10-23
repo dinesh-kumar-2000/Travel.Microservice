@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
-using PaymentService.Contracts.DTOs;
+using PaymentService.Application.DTOs;
 using PaymentService.Domain.Entities;
-using PaymentService.Domain.Repositories;
+using PaymentService.Application.Interfaces;
 using PaymentService.Application.Services;
 using Identity.Shared;
 using SharedKernel.Auditing;

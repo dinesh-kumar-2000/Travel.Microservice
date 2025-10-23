@@ -2,7 +2,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Security.Cryptography;
 using System.Text;
-using IdentityService.Domain.Repositories;
+using IdentityService.Application.Interfaces;
 using SharedKernel.Caching;
 
 namespace IdentityService.Infrastructure.Services;

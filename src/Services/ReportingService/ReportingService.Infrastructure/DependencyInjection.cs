@@ -1,5 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
-using ReportingService.Infrastructure.Repositories;
+using ReportingService.Infrastructure.Persistence.Repositories;
 using SharedKernel.Data;
 using System.Reflection;
 

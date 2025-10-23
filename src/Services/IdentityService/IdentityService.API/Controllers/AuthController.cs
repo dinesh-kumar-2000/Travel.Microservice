@@ -2,7 +2,7 @@ using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using IdentityService.Application.Commands;
 using IdentityService.Application.Queries;
-using IdentityService.Contracts.DTOs;
+using IdentityService.Application.DTOs;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Authorization;
 using SharedKernel.Auditing;
@@ -397,7 +397,7 @@ public class AuthController : ControllerBase
             RefreshToken = "refresh_token_here",
             ExpiresIn = 3600,
             TokenType = "Bearer",
-            User = new IdentityService.Contracts.DTOs.GoogleUserInfo
+            User = new IdentityService.Application.DTOs.GoogleUserInfo
             {
                 Email = result.User.Email,
                 FirstName = result.User.FirstName,

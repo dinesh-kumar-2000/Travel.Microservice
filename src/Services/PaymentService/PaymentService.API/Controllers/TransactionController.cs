@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using PaymentService.Contracts.Responses.Transaction;
-using PaymentService.Contracts.Requests.Transaction;
+using PaymentService.Application.DTOs.Responses.Transaction;
+using PaymentService.Application.DTOs.Requests.Transaction;
 using PaymentService.Application.Commands.Transaction;
 using PaymentService.Application.Queries.Transaction;
 using MediatR;

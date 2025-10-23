@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Collections.Concurrent;
-using IdentityService.Domain.Repositories;
+using IdentityService.Application.Interfaces;
 using SharedKernel.Caching;
 
 namespace IdentityService.Infrastructure.Services;

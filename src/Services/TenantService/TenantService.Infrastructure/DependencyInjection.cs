@@ -1,7 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
-using TenantService.Domain.Repositories;
-using TenantService.Domain.Interfaces;
-using TenantService.Infrastructure.Repositories;
+using TenantService.Application.Interfaces;
+using TenantService.Application.Interfaces;
+using TenantService.Infrastructure.Persistence.Repositories;
 using TenantService.Infrastructure.Services;
 using SharedKernel.Data;
 using System.Reflection;

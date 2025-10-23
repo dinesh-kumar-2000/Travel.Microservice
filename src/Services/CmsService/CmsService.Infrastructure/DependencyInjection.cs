@@ -1,5 +1,5 @@
-using CmsService.Domain.Repositories;
-using CmsService.Infrastructure.Repositories;
+using CmsService.Application.Interfaces;
+using CmsService.Infrastructure.Persistence.Repositories;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace CmsService.Infrastructure;

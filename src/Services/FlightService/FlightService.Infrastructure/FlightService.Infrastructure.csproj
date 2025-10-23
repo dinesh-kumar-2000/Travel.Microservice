@@ -16,6 +16,7 @@
   <ItemGroup>
     <ProjectReference Include="..\FlightService.Contracts\FlightService.Contracts.csproj" />
     <ProjectReference Include="..\FlightService.Domain\FlightService.Domain.csproj" />
+    <ProjectReference Include="..\FlightService.Application\FlightService.Application.csproj" />
     <ProjectReference Include="..\..\BuildingBlocks\SharedKernel\SharedKernel.csproj" />
     <ProjectReference Include="..\..\BuildingBlocks\EventBus\EventBus.csproj" />
   </ItemGroup>

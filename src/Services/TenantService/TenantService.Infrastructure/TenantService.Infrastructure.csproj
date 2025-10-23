@@ -10,6 +10,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\TenantService.Domain\TenantService.Domain.csproj" />
+    <ProjectReference Include="..\TenantService.Application\TenantService.Application.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\SharedKernel\SharedKernel.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\Tenancy\Tenancy.csproj" />
   </ItemGroup>

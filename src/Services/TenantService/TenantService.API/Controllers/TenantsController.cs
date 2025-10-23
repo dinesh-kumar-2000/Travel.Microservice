@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using System.ComponentModel.DataAnnotations;
 using TenantService.Application.Commands;
 using TenantService.Application.Queries;
-using TenantService.Contracts.DTOs;
+using TenantService.Application.DTOs;
 using SharedKernel.Auditing;
 using SharedKernel.Models;
 using Identity.Shared;

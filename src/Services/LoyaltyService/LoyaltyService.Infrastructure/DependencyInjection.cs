@@ -1,5 +1,5 @@
-using LoyaltyService.Domain.Repositories;
-using LoyaltyService.Infrastructure.Repositories;
+using LoyaltyService.Application.Interfaces;
+using LoyaltyService.Infrastructure.Persistence.Repositories;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace LoyaltyService.Infrastructure;

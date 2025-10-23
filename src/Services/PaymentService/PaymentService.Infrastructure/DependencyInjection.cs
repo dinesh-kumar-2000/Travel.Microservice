@@ -1,6 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
-using PaymentService.Domain.Repositories;
-using PaymentService.Infrastructure.Repositories;
+using PaymentService.Application.Interfaces;
+using PaymentService.Infrastructure.Persistence.Repositories;
 using SharedKernel.Data;
 using System.Reflection;
 

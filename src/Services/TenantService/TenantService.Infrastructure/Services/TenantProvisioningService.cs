@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging;
 using TenantService.Domain.Entities;
-using TenantService.Domain.Repositories;
+using TenantService.Application.Interfaces;
 using TenantService.Domain.Enums;
 
 namespace TenantService.Infrastructure.Services;

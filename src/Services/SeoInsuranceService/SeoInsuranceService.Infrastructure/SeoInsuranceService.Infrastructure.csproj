@@ -16,6 +16,7 @@
   <ItemGroup>
     <ProjectReference Include="..\SeoInsuranceService.Contracts\SeoInsuranceService.Contracts.csproj" />
     <ProjectReference Include="..\SeoInsuranceService.Domain\SeoInsuranceService.Domain.csproj" />
+    <ProjectReference Include="..\SeoInsuranceService.Application\SeoInsuranceService.Application.csproj" />
     <ProjectReference Include="..\..\BuildingBlocks\SharedKernel\SharedKernel.csproj" />
     <ProjectReference Include="..\..\BuildingBlocks\EventBus\EventBus.csproj" />
   </ItemGroup>

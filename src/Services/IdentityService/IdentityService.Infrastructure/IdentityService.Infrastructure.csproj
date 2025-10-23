@@ -18,6 +18,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\IdentityService.Domain\IdentityService.Domain.csproj" />
+    <ProjectReference Include="..\IdentityService.Application\IdentityService.Application.csproj" />
     <ProjectReference Include="..\IdentityService.Contracts\IdentityService.Contracts.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\Tenancy\Tenancy.csproj" />
   </ItemGroup>

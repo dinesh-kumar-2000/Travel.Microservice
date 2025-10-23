@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using TenantService.Contracts.Responses.TenantConfiguration;
-using TenantService.Contracts.Requests.TenantConfiguration;
+using TenantService.Application.DTOs.Responses.TenantConfiguration;
+using TenantService.Application.DTOs.Requests.TenantConfiguration;
 using TenantService.Application.Commands.TenantConfiguration;
 using TenantService.Application.Queries.TenantConfiguration;
 using MediatR;

@@ -1,7 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
-using ReportingService.Infrastructure.Repositories;
+using ReportingService.Application.Interfaces;
+using ReportingService.Application.DTOs.Responses.Report;
 using Identity.Shared;
 using Tenancy;
 using SharedKernel.Auditing;

@@ -16,6 +16,7 @@
   <ItemGroup>
     <ProjectReference Include="..\CmsService.Contracts\CmsService.Contracts.csproj" />
     <ProjectReference Include="..\CmsService.Domain\CmsService.Domain.csproj" />
+    <ProjectReference Include="..\CmsService.Application\CmsService.Application.csproj" />
     <ProjectReference Include="..\..\BuildingBlocks\SharedKernel\SharedKernel.csproj" />
     <ProjectReference Include="..\..\BuildingBlocks\EventBus\EventBus.csproj" />
   </ItemGroup>

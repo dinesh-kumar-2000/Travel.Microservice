@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using NotificationService.Contracts.Responses.PushNotification;
-using NotificationService.Contracts.Requests.PushNotification;
+using NotificationService.Application.DTOs.Responses.PushNotification;
+using NotificationService.Application.DTOs.Requests.PushNotification;
 using NotificationService.Application.Commands.PushNotification;
 using NotificationService.Application.Queries.PushNotification;
 using MediatR;

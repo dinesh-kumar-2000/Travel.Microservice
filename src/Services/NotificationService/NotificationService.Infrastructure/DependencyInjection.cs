@@ -1,5 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
-using NotificationService.Domain.Repositories;
+using NotificationService.Application.Interfaces;
 using SharedKernel.Data;
 using System.Reflection;
 

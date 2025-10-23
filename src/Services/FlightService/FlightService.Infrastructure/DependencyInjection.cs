@@ -1,5 +1,5 @@
-using FlightService.Domain.Repositories;
-using FlightService.Infrastructure.Repositories;
+using FlightService.Application.Interfaces;
+using FlightService.Infrastructure.Persistence.Repositories;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace FlightService.Infrastructure;

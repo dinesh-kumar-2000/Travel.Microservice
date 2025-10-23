@@ -1,6 +1,6 @@
 using AutoMapper;
 using IdentityService.Domain.Entities;
-using IdentityService.Contracts.Responses.Role;
+using IdentityService.Application.DTOs.Responses.Role;
 
 namespace IdentityService.Application.Mappings;
 

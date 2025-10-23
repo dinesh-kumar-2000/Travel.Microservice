@@ -1,8 +1,8 @@
 using MediatR;
 using Microsoft.Extensions.Logging;
 using TenantService.Application.Queries.TenantAdmin;
-using TenantService.Contracts.Responses.TenantAdmin;
-using TenantService.Domain.Interfaces;
+using TenantService.Application.DTOs.Responses.TenantAdmin;
+using TenantService.Application.Interfaces;
 
 namespace TenantService.Application.Handlers.TenantAdmin;
 

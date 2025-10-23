@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using PaymentService.Contracts.Responses.Refund;
-using PaymentService.Contracts.Requests.Refund;
+using PaymentService.Application.DTOs.Responses.Refund;
+using PaymentService.Application.DTOs.Requests.Refund;
 using PaymentService.Application.Commands.Refund;
 using PaymentService.Application.Queries.Refund;
 using MediatR;

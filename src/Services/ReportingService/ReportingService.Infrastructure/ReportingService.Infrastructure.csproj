@@ -10,6 +10,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ReportingService.Domain\ReportingService.Domain.csproj" />
+    <ProjectReference Include="..\ReportingService.Application\ReportingService.Application.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\SharedKernel\SharedKernel.csproj" />
   </ItemGroup>
 </Project>
